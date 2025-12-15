@@ -17,31 +17,136 @@ export default function SubstackTokenFlow() {
   const [twoFactorCode, setTwoFactorCode] = useState("")
   const [showToken, setShowToken] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [sessionId, setSessionId] = useState("")
+  const [token, setToken] = useState("")
+  const [mfaToken, setMfaToken] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Mock token for demonstration
-  const mockToken = "sk_test_51JxYz2LqK9W3xH8P3QxRz2B5xC9W3xH8P3QxRz2B5xC"
-
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (email) {
+    if (!email) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("https://substack.com/api/v1/email-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          redirect: "/home",
+          can_create_user: true,
+        }),
+      })
+
+      const data = await response.json()
+
+      // Extract substack.sid from cookies
+      const cookies = document.cookie.split(";")
+      const sidCookie = cookies.find((c) => c.trim().startsWith("substack.sid="))
+      if (sidCookie) {
+        const sid = sidCookie.split("=")[1]
+        setSessionId(sid)
+      }
+
       setStep("verification")
+    } catch (error) {
+      console.error("Email login error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleVerificationSubmit = (e: React.FormEvent) => {
+  const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const code = verificationCode.join("")
-    if (code.length === 6) {
-      setStep("twoFactor")
+    if (code.length !== 6) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("https://substack.com/api/v1/email-otp-login/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          code,
+          email,
+          redirect: "https://substack.com/home",
+        }),
+      })
+
+      const data = await response.json()
+
+      // Check if response includes MFA requirement
+      if (data.token) {
+        setMfaToken(data.token)
+      }
+
+      // Check if we need 2FA or if we're done
+      if (data.requires_mfa || data.token) {
+        setStep("twoFactor")
+      } else {
+        // If no 2FA required, we might have the final token
+        if (data.substack_sid || sessionId) {
+          setToken(sessionId || data.substack_sid)
+          setStep("token")
+        }
+      }
+    } catch (error) {
+      console.error("Verification error:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleTwoFactorSubmit = (e: React.FormEvent) => {
+  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setStep("token")
+    if (!twoFactorCode) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch("https://substack.com/api/v1/mfa-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          code: twoFactorCode,
+          token: mfaToken,
+          redirect: "",
+        }),
+      })
+
+      const data = await response.json()
+
+      // Extract the final token/session
+      const cookies = document.cookie.split(";")
+      const sidCookie = cookies.find((c) => c.trim().startsWith("substack.sid="))
+      if (sidCookie) {
+        const sid = sidCookie.split("=")[1]
+        setToken(sid)
+      } else if (sessionId) {
+        setToken(sessionId)
+      }
+
+      setStep("token")
+    } catch (error) {
+      console.error("MFA error:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSkipTwoFactor = () => {
+    // If skipping 2FA, use the session ID we already have
+    if (sessionId) {
+      setToken(sessionId)
+    }
     setStep("token")
   }
 
@@ -60,7 +165,7 @@ export default function SubstackTokenFlow() {
   }
 
   const handleCopyToken = async () => {
-    await navigator.clipboard.writeText(mockToken)
+    await navigator.clipboard.writeText(token)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -97,8 +202,9 @@ export default function SubstackTokenFlow() {
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
+              disabled={isLoading}
             >
-              Continue
+              {isLoading ? "Sending..." : "Continue"}
             </Button>
           </form>
         )}
@@ -137,8 +243,9 @@ export default function SubstackTokenFlow() {
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
+              disabled={isLoading}
             >
-              Continue
+              {isLoading ? "Verifying..." : "Continue"}
             </Button>
           </form>
         )}
@@ -162,14 +269,16 @@ export default function SubstackTokenFlow() {
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
+              disabled={isLoading}
             >
-              Confirm
+              {isLoading ? "Confirming..." : "Confirm"}
             </Button>
             <Button
               type="button"
               variant="ghost"
               onClick={handleSkipTwoFactor}
               className="w-full text-muted-foreground hover:text-card-foreground"
+              disabled={isLoading}
             >
               Skip (no 2FA enabled)
             </Button>
@@ -186,7 +295,7 @@ export default function SubstackTokenFlow() {
               <div className="relative">
                 <Input
                   type={showToken ? "text" : "password"}
-                  value={mockToken}
+                  value={token}
                   readOnly
                   className="bg-input border-border text-card-foreground h-12 pr-20 font-mono text-sm"
                 />
