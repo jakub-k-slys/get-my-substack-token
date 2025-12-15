@@ -22,6 +22,7 @@ export default function SubstackTokenFlow() {
   const [token, setToken] = useState("")
   const [mfaToken, setMfaToken] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,27 +52,50 @@ export default function SubstackTokenFlow() {
     if (code.length !== 6) return
 
     setIsLoading(true)
+    setError("")
     try {
       const data = await verifyEmailOtp(code, email)
+
+      // Log the response for debugging
+      console.log("Verification response:", data)
+
+      // Check for API errors
+      if (data.error || data.errors) {
+        const errorMessage = data.error || data.errors?.[0]?.message || "Verification failed"
+        setError(errorMessage)
+        console.error("API returned error:", errorMessage)
+        return
+      }
+
+      // Store the session token if we got one
+      if (data.sessionToken) {
+        setToken(data.sessionToken)
+        console.log("Session token received:", data.sessionToken)
+      }
 
       // Check if response includes MFA requirement
       if (data.token) {
         setMfaToken(data.token)
       }
 
-      // Check if we need 2FA or if we're done
-      if (data.requires_mfa || data.token) {
+      // Check if we need 2FA based on redirect URL or explicit flags
+      const needsMfa = data.requires_mfa || data.token || data.redirect?.includes("/mfa")
+
+      if (needsMfa) {
+        // MFA is required, move to 2FA step
+        console.log("MFA required, moving to 2FA step")
         setStep("twoFactor")
       } else {
-        // If no 2FA required, get the final token
-        const sid = await getSessionToken()
-        if (sid) {
-          setToken(sid)
+        // If no 2FA required and we have a token, show it
+        if (data.sessionToken) {
           setStep("token")
+        } else {
+          setError("Failed to retrieve session token")
         }
       }
     } catch (error) {
       console.error("Verification error:", error)
+      setError(error instanceof Error ? error.message : "An error occurred during verification")
     } finally {
       setIsLoading(false)
     }
@@ -82,34 +106,54 @@ export default function SubstackTokenFlow() {
     if (!twoFactorCode) return
 
     setIsLoading(true)
+    setError("")
     try {
-      await verifyMfa(twoFactorCode, mfaToken)
+      const data = await verifyMfa(twoFactorCode, mfaToken)
 
-      // Get the final token
-      const sid = await getSessionToken()
-      if (sid) {
-        setToken(sid)
-      } else if (sessionId) {
-        setToken(sessionId)
+      console.log("MFA verification response:", data)
+
+      // Check for API errors
+      if (data.error || data.errors) {
+        const errorMessage = data.error || data.errors?.[0]?.message || "MFA verification failed"
+        setError(errorMessage)
+        console.error("API returned error:", errorMessage)
+        return
       }
 
-      setStep("token")
+      // Use the session token from the response
+      if (data.sessionToken) {
+        setToken(data.sessionToken)
+        console.log("Session token received from MFA:", data.sessionToken)
+        setStep("token")
+      } else {
+        setError("Failed to retrieve session token after MFA verification")
+      }
     } catch (error) {
       console.error("MFA error:", error)
+      setError(error instanceof Error ? error.message : "An error occurred during MFA verification")
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSkipTwoFactor = async () => {
-    // If skipping 2FA, get the session ID from the server
-    const sid = await getSessionToken()
-    if (sid) {
-      setToken(sid)
-    } else if (sessionId) {
-      setToken(sessionId)
+    // If skipping 2FA, use the token we already have from verification
+    if (token) {
+      console.log("Using existing token from verification")
+      setStep("token")
+    } else {
+      // Fallback: try to get session ID from the server
+      const sid = await getSessionToken()
+      if (sid) {
+        setToken(sid)
+        setStep("token")
+      } else if (sessionId) {
+        setToken(sessionId)
+        setStep("token")
+      } else {
+        setError("No session token available. Please try the verification again.")
+      }
     }
-    setStep("token")
   }
 
   const handleVerificationCodeChange = (index: number, value: string) => {
@@ -183,6 +227,11 @@ export default function SubstackTokenFlow() {
               {"We've sent an email to"} <span className="text-card-foreground">{email}</span>. Click the magic link or
               enter the code below:
             </p>
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive text-center">{error}</p>
+              </div>
+            )}
             <div className="flex gap-2 justify-center">
               {verificationCode.map((digit, index) => (
                 <Input
@@ -218,6 +267,11 @@ export default function SubstackTokenFlow() {
             <p className="text-sm text-muted-foreground text-center mb-6">
               Enter the code from your authenticator app below.
             </p>
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive text-center">{error}</p>
+              </div>
+            )}
             <div className="space-y-2">
               <Input
                 type="text"
