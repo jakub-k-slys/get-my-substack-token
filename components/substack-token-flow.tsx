@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Bookmark, Mail, Eye, EyeOff, Copy, Check } from "lucide-react"
+import { emailLogin, verifyEmailOtp, verifyMfa, getSessionToken } from "@/app/actions/substack-auth"
 
 type Step = "email" | "verification" | "twoFactor" | "token"
 
@@ -28,26 +29,11 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("/api/auth/email-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email,
-          redirect: "/home",
-          can_create_user: true,
-        }),
-      })
+      await emailLogin(email)
 
-      const data = await response.json()
-
-      // Extract substack.sid from cookies
-      const cookies = document.cookie.split(";")
-      const sidCookie = cookies.find((c) => c.trim().startsWith("substack.sid="))
-      if (sidCookie) {
-        const sid = sidCookie.split("=")[1]
+      // Get the session ID that was set by the server action
+      const sid = await getSessionToken()
+      if (sid) {
         setSessionId(sid)
       }
 
@@ -66,20 +52,7 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("/api/auth/email-otp-complete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          code,
-          email,
-          redirect: "https://substack.com/home",
-        }),
-      })
-
-      const data = await response.json()
+      const data = await verifyEmailOtp(code, email)
 
       // Check if response includes MFA requirement
       if (data.token) {
@@ -90,9 +63,10 @@ export default function SubstackTokenFlow() {
       if (data.requires_mfa || data.token) {
         setStep("twoFactor")
       } else {
-        // If no 2FA required, we might have the final token
-        if (data.substack_sid || sessionId) {
-          setToken(sessionId || data.substack_sid)
+        // If no 2FA required, get the final token
+        const sid = await getSessionToken()
+        if (sid) {
+          setToken(sid)
           setStep("token")
         }
       }
@@ -109,26 +83,11 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("/api/auth/mfa-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          code: twoFactorCode,
-          token: mfaToken,
-          redirect: "",
-        }),
-      })
+      await verifyMfa(twoFactorCode, mfaToken)
 
-      const data = await response.json()
-
-      // Extract the final token/session
-      const cookies = document.cookie.split(";")
-      const sidCookie = cookies.find((c) => c.trim().startsWith("substack.sid="))
-      if (sidCookie) {
-        const sid = sidCookie.split("=")[1]
+      // Get the final token
+      const sid = await getSessionToken()
+      if (sid) {
         setToken(sid)
       } else if (sessionId) {
         setToken(sessionId)
@@ -142,9 +101,12 @@ export default function SubstackTokenFlow() {
     }
   }
 
-  const handleSkipTwoFactor = () => {
-    // If skipping 2FA, use the session ID we already have
-    if (sessionId) {
+  const handleSkipTwoFactor = async () => {
+    // If skipping 2FA, get the session ID from the server
+    const sid = await getSessionToken()
+    if (sid) {
+      setToken(sid)
+    } else if (sessionId) {
       setToken(sessionId)
     }
     setStep("token")
