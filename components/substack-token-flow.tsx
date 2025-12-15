@@ -28,7 +28,7 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("https://substack.com/api/v1/email-login", {
+      const response = await fetch("/api/auth/email-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("https://substack.com/api/v1/email-otp-login/complete", {
+      const response = await fetch("/api/auth/email-otp-complete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +109,7 @@ export default function SubstackTokenFlow() {
 
     setIsLoading(true)
     try {
-      const response = await fetch("https://substack.com/api/v1/mfa-login", {
+      const response = await fetch("/api/auth/mfa-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
