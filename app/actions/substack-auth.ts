@@ -3,25 +3,25 @@
 import axios from "axios"
 
 const api = axios.create({
-  baseURL: "https://substack.com/api/v1/",
+  baseURL: 'https://substack.com/api/v1/',
   headers: {
-    Accept: '*/*',
+    Accept: 'application/json',
     'Content-Type': 'application/json',
     'User-Agent': 'PostmanRuntime/7.51.0',
     'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-  },
+    'Connection': 'keep-alive'
+  }
 })
 
 export async function emailLogin(email: string) : Promise<{token: string | undefined}> {
   console.log(`email OTP initiated | Using email ${email}`)
   try {
-    const request =  {
+    const body =  {
       email: email,
       redirect: '/home',
       can_create_user: true,
     }
-    const response = await api.post('/email-login', request)
+    const response = await api.post('/email-login', body)
     if (response.data) {
       console.log(response.data)
     }
@@ -48,7 +48,7 @@ export async function emailLogin(email: string) : Promise<{token: string | undef
 export async function verifyEmailOtp(code: string, email: string, token: string | undefined) {
   console.log(`email OTP verification step | Using code ${code}, email ${email} and token ${token}`)
   try {
-    const response = await api.post("/email-otp-login/complete/", {
+    const response = await api.post("/email-otp-login/complete", {
       code: code,
       email: email,
       redirect: "https://substack.com/home",
