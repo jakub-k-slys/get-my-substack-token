@@ -18,9 +18,7 @@ export default function SubstackTokenFlow() {
   const [twoFactorCode, setTwoFactorCode] = useState("")
   const [showToken, setShowToken] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [setSessionId] = useState("")
   const [token, setToken] = useState("")
-  const [mfaToken, setMfaToken] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -31,7 +29,7 @@ export default function SubstackTokenFlow() {
     setIsLoading(true)
     try {
       const { token } = await emailLogin(email)
-      setToken(token)
+      setToken(token!)
       setStep("verification")
     } catch (error) {
       console.error("Email login error:", error)
@@ -48,18 +46,8 @@ export default function SubstackTokenFlow() {
     setIsLoading(true)
     setError("")
     try {
-      const data = await verifyEmailOtp(code, email, token)
-
-      // Log the response for debugging
-      console.log("Verification response:", data)
-
-      // Check for API errors
-      if (data.error || data.errors) {
-        const errorMessage = data.error || data.errors?.[0]?.message || "Verification failed"
-        setError(errorMessage)
-        console.error("API returned error:", errorMessage)
-        return
-      }
+      const { newToken } = await verifyEmailOtp(code, email, token!)
+      newToken && setToken(newToken!)
 
         // MFA is required, move to 2FA step
       console.log("MFA required, moving to 2FA step")
@@ -89,15 +77,6 @@ export default function SubstackTokenFlow() {
         setError(errorMessage)
         console.error("API returned error:", errorMessage)
         return
-      }
-
-      // Use the session token from the response
-      if (data.sessionToken) {
-        setToken(data.sessionToken)
-        console.log("Session token received from MFA:", data.sessionToken)
-        setStep("token")
-      } else {
-        setError("Failed to retrieve session token after MFA verification")
       }
     } catch (error) {
       console.error("MFA error:", error)

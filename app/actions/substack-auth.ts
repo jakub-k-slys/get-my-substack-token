@@ -1,68 +1,105 @@
 "use server"
 
-import { cookies } from "next/headers"
+import axios from "axios"
 
-export async function emailLogin(email: string) : Promise<{token: string}> {
-  const response = await fetch("https://substack.com/api/v1/email-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      redirect: "/home",
+const api = axios.create({
+  baseURL: "https://substack.com/api/v1/",
+  headers: {
+    Accept: '*/*',
+    'Content-Type': 'application/json',
+    'User-Agent': 'PostmanRuntime/7.51.0',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+  },
+})
+
+export async function emailLogin(email: string) : Promise<{token: string | undefined}> {
+  console.log(`email OTP initiated | Using email ${email}`)
+  try {
+    const request =  {
+      email: email,
+      redirect: '/home',
       can_create_user: true,
-    }),
-    credentials: "include",
-  })
-  const substackSid = response.headers.getSetCookie().find(cookie => cookie.includes("substack.sid"))!
-  return { token: substackSid.split(';')[0].split('=')[1] }
+    }
+    const response = await api.post('/email-login', request)
+    if (response.data) {
+      console.log(response.data)
+    }
+
+    let token: string | undefined
+    const setCookieHeaders = response.headers['set-cookie']
+    if (setCookieHeaders) {
+      const substackSid = setCookieHeaders.find(cookie => cookie.includes("substack.sid"))
+      if (substackSid) {
+        token = substackSid.split(';')[0].split('=')[1]
+        console.log(`email OTP initiated | New token obtained: ${token}`)
+      }
+    }
+    return { token: token }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Email login failed:", error.response?.status, error.response?.data)
+      throw new Error(error.response?.data?.message || "Email login failed")
+    }
+    throw error
+  }
 }
 
-export async function verifyEmailOtp(code: string, email: string, token: string) {
-  const response = await fetch("https://substack.com/api/v1/email-otp-login/complete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Cookie: `substack.sid=${token}` }),
-    },
-    body: JSON.stringify({
-      code,
-      email,
+export async function verifyEmailOtp(code: string, email: string, token: string | undefined) {
+  console.log(`email OTP verification step | Using code ${code}, email ${email} and token ${token}`)
+  try {
+    const response = await api.post("/email-otp-login/complete/", {
+      code: code,
+      email: email,
       redirect: "https://substack.com/home",
-    }),
-  })
+    }, {
+      headers: {
+        ...(token && { Cookie: `substack.sid=${token}` }),
+      },
+    })
 
-  console.log("OTP verification response status:", response.status)
+    console.log("OTP verification response status:", response.status)
+    console.log("OTP verification response data:", JSON.stringify(response.data, null, 2))
 
-  const data = await response.json()
-  console.log("OTP verification response data:", JSON.stringify(data, null, 2))
-
-  if (!response.ok) {
-    console.error("OTP verification failed with status:", response.status)
+    const setCookieHeaders = response.headers['set-cookie']
+    if (setCookieHeaders) {
+      const substackSid = setCookieHeaders.find(cookie => cookie.includes("substack.sid"))
+      if (substackSid) {
+        token = substackSid.split(';')[0].split('=')[1]
+        console.log(`email OTP | New token obtained: ${token}`)
+      }
+    }
+    return { newToken: token }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("OTP verification failed:", error.response?.status, error.response?.data)
+      throw new Error(error.response?.data?.message || "OTP verification failed")
+    }
+    throw error
   }
-  return data
 }
 
 export async function verifyMfa(code: string, token: string) {
-  console.log("Verifying MFA with code:", code, "has token:", !!token)
-
-  const response = await fetch("https://substack.com/api/v1/mfa-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Cookie: `substack.sid=${token}` }),
-    },
-    body: JSON.stringify({
-      code,
-      token,
+  console.log(`MFA verification step | Using code: ${code} and token: ${token}`)
+  try {
+    const response = await api.post("/mfa-login/", {
+      code: code,
+      token: "",
       redirect: "",
-    }),
-  })
+    }, {
+      headers: {
+        ...(token && { Cookie: `substack.sid=${token}` }),
+      },
+    })
 
-  console.log("MFA verification response status:", response.status)
-
-  const data = await response.json()
-  console.log("MFA verification response data:", JSON.stringify(data, null, 2))
-  return data
+    console.log("MFA verification response status:", response.status)
+    console.log("MFA verification response data:", JSON.stringify(response.data, null, 2))
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("MFA verification failed:", error.response?.status, error.response?.data)
+      throw new Error(error.response?.data?.message || "MFA verification failed")
+    }
+    throw error
+  }
 }
