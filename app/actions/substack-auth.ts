@@ -1,167 +1,131 @@
 "use server"
 
-import { cookies } from "next/headers"
+import axios from "axios"
 
-export async function emailLogin(email: string) {
-  const response = await fetch("https://substack.com/api/v1/email-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      redirect: "/home",
+const api = axios.create({
+  baseURL: 'https://substack.com/api/v1/',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'PostmanRuntime/7.51.0',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive'
+  }
+})
+
+// Utility function to extract token from response headers
+const extractTokenFromHeaders = (headers: Record<string, any>): string | undefined => {
+  const setCookieHeaders = headers['set-cookie']
+  if (!setCookieHeaders) return undefined
+
+  const substackSid = setCookieHeaders.find((cookie: string) =>
+    cookie.includes("substack.sid")
+  )
+
+  if (!substackSid) return undefined
+
+  return substackSid.split(';')[0].split('=')[1]
+}
+
+export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
+  console.log(`email OTP initiated | Using email ${email}`)
+  try {
+    const body =  {
+      email: email,
+      redirect: '/home',
       can_create_user: true,
-    }),
-  })
+    }
+    const response = await api.post('/email-login', body)
+    if (response.data) {
+      console.log(response.data)
+    }
 
-  const data = await response.json()
+    const token = extractTokenFromHeaders(response.headers)
+    if (token) {
+      console.log(`email OTP initiated | New token obtained: ${token}`)
+    }
 
-  // Extract and set cookies from Substack response
-  const setCookieHeaders = response.headers.getSetCookie()
-  const cookieStore = await cookies()
-
-  setCookieHeaders.forEach((cookieString) => {
-    // Parse the cookie string
-    const [nameValue, ...attributes] = cookieString.split(";")
-    const [name, value] = nameValue.split("=")
-
-    // Set the cookie
-    cookieStore.set(name.trim(), value.trim(), {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-    })
-  })
-
-  return data
+    return { token }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Email login failed:", error.response?.status, error.response?.data)
+      throw new Error(error.response?.data?.message || "Email login failed")
+    }
+    throw error
+  }
 }
 
-export async function verifyEmailOtp(code: string, email: string) {
-  const cookieStore = await cookies()
-  const substackSid = cookieStore.get("substack.sid")
-
-  console.log("Verifying OTP with code:", code, "email:", email, "has sid:", !!substackSid)
-
-  const response = await fetch("https://substack.com/api/v1/email-otp-login/complete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(substackSid && { Cookie: `substack.sid=${substackSid.value}` }),
-    },
-    body: JSON.stringify({
-      code,
-      email,
+export const verifyEmailOtp = async (code: string, email: string, token: string | undefined) => {
+  console.log(`email OTP verification step | Using code ${code}, email ${email} and token ${token}`)
+  try {
+    const response = await api.post("/email-otp-login/complete", {
+      code: code,
+      email: email,
       redirect: "https://substack.com/home",
-    }),
-  })
+    }, {
+      headers: {
+        ...(token && { Cookie: `substack.sid=${token}` }),
+      },
+    })
 
-  console.log("OTP verification response status:", response.status)
+    console.log("OTP verification response status:", response.status)
+    console.log("OTP verification response data:", JSON.stringify(response.data, null, 2))
 
-  const data = await response.json()
-  console.log("OTP verification response data:", JSON.stringify(data, null, 2))
-
-  // Check if the response was not OK
-  if (!response.ok) {
-    console.error("OTP verification failed with status:", response.status)
-    // Return the error data so the client can display it
-    return data
-  }
-
-  // Extract the session token from Set-Cookie headers
-  const setCookieHeaders = response.headers.getSetCookie()
-  console.log("Setting cookies:", setCookieHeaders.length)
-
-  let sessionToken = ""
-
-  setCookieHeaders.forEach((cookieString) => {
-    const [nameValue, ...attributes] = cookieString.split(";")
-    const [name, value] = nameValue.split("=")
-    const cookieName = name.trim()
-    const cookieValue = value.trim()
-
-    // Extract the substack.sid cookie value
-    if (cookieName === "substack.sid") {
-      // Decode the URL-encoded cookie value
-      sessionToken = decodeURIComponent(cookieValue)
-      console.log("Found session token:", sessionToken)
+    const newToken = extractTokenFromHeaders(response.headers)
+    if (newToken) {
+      console.log(`email OTP | New token obtained: ${newToken}`)
     }
 
-    // Store cookies locally (though they won't work cross-domain)
-    cookieStore.set(cookieName, cookieValue, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-    })
-  })
-
-  // Add the session token to the response data
-  return {
-    ...data,
-    sessionToken,
+    return { newToken }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("OTP verification failed:", error.response?.status, error.response?.data)
+      throw new Error(error.response?.data?.message || "OTP verification failed")
+    }
+    throw error
   }
 }
 
-export async function verifyMfa(code: string, token: string) {
-  const cookieStore = await cookies()
-  const substackSid = cookieStore.get("substack.sid")
-
-  console.log("Verifying MFA with code:", code, "has token:", !!token)
-
-  const response = await fetch("https://substack.com/api/v1/mfa-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(substackSid && { Cookie: `substack.sid=${substackSid.value}` }),
-    },
-    body: JSON.stringify({
-      code,
-      token,
+export const verifyMfa = async (
+  code: string,
+  token: string
+): Promise<{ success: boolean; token?: string; error?: string }> => {
+  console.log(`MFA verification step | Using code: ${code} and token: ${token}`)
+  try {
+    const response = await api.post("/mfa-login", {
+      code: code,
+      token: "",
       redirect: "",
-    }),
-  })
+    }, {
+      headers: {
+        ...(token && { Cookie: `substack.sid=${token}` }),
+      },
+    })
 
-  console.log("MFA verification response status:", response.status)
+    console.log("MFA verification response status:", response.status)
+    console.log("MFA verification response data:", JSON.stringify(response.data, null, 2))
 
-  const data = await response.json()
-  console.log("MFA verification response data:", JSON.stringify(data, null, 2))
-
-  // Extract the session token from Set-Cookie headers
-  const setCookieHeaders = response.headers.getSetCookie()
-  console.log("Setting cookies:", setCookieHeaders.length)
-
-  let sessionToken = ""
-
-  setCookieHeaders.forEach((cookieString) => {
-    const [nameValue, ...attributes] = cookieString.split(";")
-    const [name, value] = nameValue.split("=")
-    const cookieName = name.trim()
-    const cookieValue = value.trim()
-
-    // Extract the substack.sid cookie value
-    if (cookieName === "substack.sid") {
-      // Decode the URL-encoded cookie value
-      sessionToken = decodeURIComponent(cookieValue)
-      console.log("Found session token from MFA:", sessionToken)
+    // Check for API errors
+    if (response.data.error || response.data.errors) {
+      const errorMessage = response.data.error || response.data.errors?.[0]?.message || "MFA verification failed"
+      return { success: false, error: errorMessage }
     }
 
-    // Store cookies locally (though they won't work cross-domain)
-    cookieStore.set(cookieName, cookieValue, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-    })
-  })
+    // Extract new token if available
+    const newToken = extractTokenFromHeaders(response.headers)
 
-  // Add the session token to the response data
-  return {
-    ...data,
-    sessionToken,
+    return {
+      success: true,
+      token: newToken || token // Return new token or keep existing
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("MFA verification failed:", error.response?.status, error.response?.data)
+      return {
+        success: false,
+        error: error.response?.data?.message || "MFA verification failed"
+      }
+    }
+    return { success: false, error: "An unexpected error occurred" }
   }
-}
-
-export async function getSessionToken() {
-  const cookieStore = await cookies()
-  const substackSid = cookieStore.get("substack.sid")
-  return substackSid?.value || ""
 }
