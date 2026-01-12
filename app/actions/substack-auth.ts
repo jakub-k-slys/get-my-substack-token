@@ -13,7 +13,21 @@ const api = axios.create({
   }
 })
 
-export async function emailLogin(email: string) : Promise<{token: string | undefined}> {
+// Utility function to extract token from response headers
+const extractTokenFromHeaders = (headers: Record<string, any>): string | undefined => {
+  const setCookieHeaders = headers['set-cookie']
+  if (!setCookieHeaders) return undefined
+
+  const substackSid = setCookieHeaders.find((cookie: string) =>
+    cookie.includes("substack.sid")
+  )
+
+  if (!substackSid) return undefined
+
+  return substackSid.split(';')[0].split('=')[1]
+}
+
+export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
   console.log(`email OTP initiated | Using email ${email}`)
   try {
     const body =  {
@@ -26,16 +40,12 @@ export async function emailLogin(email: string) : Promise<{token: string | undef
       console.log(response.data)
     }
 
-    let token: string | undefined
-    const setCookieHeaders = response.headers['set-cookie']
-    if (setCookieHeaders) {
-      const substackSid = setCookieHeaders.find(cookie => cookie.includes("substack.sid"))
-      if (substackSid) {
-        token = substackSid.split(';')[0].split('=')[1]
-        console.log(`email OTP initiated | New token obtained: ${token}`)
-      }
+    const token = extractTokenFromHeaders(response.headers)
+    if (token) {
+      console.log(`email OTP initiated | New token obtained: ${token}`)
     }
-    return { token: token }
+
+    return { token }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Email login failed:", error.response?.status, error.response?.data)
@@ -45,7 +55,7 @@ export async function emailLogin(email: string) : Promise<{token: string | undef
   }
 }
 
-export async function verifyEmailOtp(code: string, email: string, token: string | undefined) {
+export const verifyEmailOtp = async (code: string, email: string, token: string | undefined) => {
   console.log(`email OTP verification step | Using code ${code}, email ${email} and token ${token}`)
   try {
     const response = await api.post("/email-otp-login/complete", {
@@ -61,15 +71,12 @@ export async function verifyEmailOtp(code: string, email: string, token: string 
     console.log("OTP verification response status:", response.status)
     console.log("OTP verification response data:", JSON.stringify(response.data, null, 2))
 
-    const setCookieHeaders = response.headers['set-cookie']
-    if (setCookieHeaders) {
-      const substackSid = setCookieHeaders.find(cookie => cookie.includes("substack.sid"))
-      if (substackSid) {
-        token = substackSid.split(';')[0].split('=')[1]
-        console.log(`email OTP | New token obtained: ${token}`)
-      }
+    const newToken = extractTokenFromHeaders(response.headers)
+    if (newToken) {
+      console.log(`email OTP | New token obtained: ${newToken}`)
     }
-    return { newToken: token }
+
+    return { newToken }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("OTP verification failed:", error.response?.status, error.response?.data)
@@ -79,10 +86,13 @@ export async function verifyEmailOtp(code: string, email: string, token: string 
   }
 }
 
-export async function verifyMfa(code: string, token: string) {
+export const verifyMfa = async (
+  code: string,
+  token: string
+): Promise<{ success: boolean; token?: string; error?: string }> => {
   console.log(`MFA verification step | Using code: ${code} and token: ${token}`)
   try {
-    const response = await api.post("/mfa-login/", {
+    const response = await api.post("/mfa-login", {
       code: code,
       token: "",
       redirect: "",
@@ -94,12 +104,28 @@ export async function verifyMfa(code: string, token: string) {
 
     console.log("MFA verification response status:", response.status)
     console.log("MFA verification response data:", JSON.stringify(response.data, null, 2))
-    return response.data
+
+    // Check for API errors
+    if (response.data.error || response.data.errors) {
+      const errorMessage = response.data.error || response.data.errors?.[0]?.message || "MFA verification failed"
+      return { success: false, error: errorMessage }
+    }
+
+    // Extract new token if available
+    const newToken = extractTokenFromHeaders(response.headers)
+
+    return {
+      success: true,
+      token: newToken || token // Return new token or keep existing
+    }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("MFA verification failed:", error.response?.status, error.response?.data)
-      throw new Error(error.response?.data?.message || "MFA verification failed")
+      return {
+        success: false,
+        error: error.response?.data?.message || "MFA verification failed"
+      }
     }
-    throw error
+    return { success: false, error: "An unexpected error occurred" }
   }
 }
