@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:test": "SUBSTACK_API_URL=http://localhost:3001/api/v1/ next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -14,8 +13,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:all": "vitest run && playwright test",
-    "mock-server": "pnpm tsx e2e/mocks/substack-mock-server.ts"
+    "test:all": "vitest run && playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -83,7 +81,6 @@
     "@types/react-dom": "^19",
     "@types/testing-library__jest-dom": "^6.0.0",
     "@vitejs/plugin-react": "^5.1.2",
-    "dotenv-cli": "^11.0.0",
     "express": "^5.2.1",
     "jsdom": "^27.4.0",
     "postcss": "^8.5",

@@ -1,7 +1,7 @@
 import type { FullConfig } from "@playwright/test"
 
 async function globalTeardown(config: FullConfig) {
-  const server = (global as any).__MOCK_SERVER__
+  const server = (globalThis as any).__MOCK_SERVER__
   if (server) {
     await new Promise<void>((resolve) => {
       server.close(() => {
