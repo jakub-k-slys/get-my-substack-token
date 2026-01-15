@@ -3,7 +3,7 @@
 import axios from "axios"
 
 const api = axios.create({
-  baseURL: 'https://substack.com/api/v1/',
+  baseURL: process.env.SUBSTACK_API_URL || 'https://substack.com/api/v1/',
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
