@@ -28,7 +28,7 @@ export const TwoFactorStep = () => {
       </p>
 
       {state.error && (
-        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+        <div data-testid="error-message" className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
           <p className="text-sm text-destructive text-center">{state.error}</p>
         </div>
       )}
@@ -36,6 +36,7 @@ export const TwoFactorStep = () => {
       <div className="space-y-2">
         <Input
           type="text"
+          data-testid="mfa-input"
           placeholder="Type your 6-digit code here..."
           {...form.register("code")}
           maxLength={6}
@@ -43,12 +44,13 @@ export const TwoFactorStep = () => {
           aria-invalid={!!form.formState.errors.code}
         />
         {form.formState.errors.code && (
-          <p className="text-sm text-destructive">{form.formState.errors.code.message}</p>
+          <p data-testid="mfa-error" className="text-sm text-destructive">{form.formState.errors.code.message}</p>
         )}
       </div>
 
       <Button
         type="submit"
+        data-testid="confirm-button"
         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
         disabled={isLoading}
       >
@@ -58,6 +60,7 @@ export const TwoFactorStep = () => {
       {canSkipMfa && (
         <Button
           type="button"
+          data-testid="skip-2fa-button"
           variant="ghost"
           onClick={skipMfa}
           className="w-full text-muted-foreground hover:text-card-foreground"

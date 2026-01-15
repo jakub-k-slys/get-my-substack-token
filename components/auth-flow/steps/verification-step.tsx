@@ -41,21 +41,22 @@ export const VerificationStep = () => {
       </div>
 
       <p className="text-sm text-muted-foreground text-center mb-6">
-        We've sent an email to <span className="text-card-foreground">{state.email}</span>. Click
+        We've sent an email to <span data-testid="email-display" className="text-card-foreground">{state.email}</span>. Click
         the magic link or enter the code below:
       </p>
 
       {state.error && (
-        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+        <div data-testid="error-message" className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
           <p className="text-sm text-destructive text-center">{state.error}</p>
         </div>
       )}
 
-      <div className="flex gap-2 justify-center">
+      <div data-testid="verification-code-inputs" className="flex gap-2 justify-center">
         {code.map((digit, index) => (
           <Input
             key={index}
             id={`code-${index}`}
+            data-testid={`code-input-${index}`}
             type="text"
             inputMode="numeric"
             maxLength={1}
@@ -77,6 +78,7 @@ export const VerificationStep = () => {
 
       <Button
         type="submit"
+        data-testid="continue-button"
         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
         disabled={isLoading || code.join("").length !== 6}
       >

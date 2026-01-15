@@ -12,57 +12,52 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await page.goto("/")
 
     // Step 1: Email
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Step 2: Verification - wait for the verification step to appear
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    await expect(page.getByText("test@example.com")).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
+    await expect(page.getByTestId("email-display")).toHaveText("test@example.com")
 
     // Fill in the 6-digit verification code
-    const codeInputs = page.locator('input[id^="code-"]')
-    await codeInputs.nth(0).fill("1")
-    await codeInputs.nth(1).fill("2")
-    await codeInputs.nth(2).fill("3")
-    await codeInputs.nth(3).fill("4")
-    await codeInputs.nth(4).fill("5")
-    await codeInputs.nth(5).fill("6")
+    for (let i = 0; i < 6; i++) {
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
+    }
 
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
     // Step 3: Two-Factor Authentication
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByPlaceholder("Type your 6-digit code here...").fill("123456")
-    await page.getByRole("button", { name: "Confirm" }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("mfa-input").fill("123456")
+    await page.getByTestId("confirm-button").click()
 
     // Step 4: Token Display
-    await expect(page.getByRole("heading", { name: "Your Substack Token" })).toBeVisible()
-    await expect(page.getByText("Your authentication token has been generated")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Copy Token" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
+    await expect(page.getByTestId("token-message")).toBeVisible()
+    await expect(page.getByTestId("copy-token-button")).toBeVisible()
   })
 
   test("should allow skipping 2FA step", async ({ page }) => {
     await page.goto("/")
 
     // Email step
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Verification step
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
     // Two-Factor step - click skip
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByRole("button", { name: /Skip.*2FA/i }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("skip-2fa-button").click()
 
     // Should go directly to token display
-    await expect(page.getByRole("heading", { name: "Your Substack Token" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
   })
 
   test("should show token and allow copying", async ({ page, context }) => {
@@ -72,87 +67,83 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await page.goto("/")
 
     // Complete flow quickly
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByRole("button", { name: /Skip.*2FA/i }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("skip-2fa-button").click()
 
     // Token display step
-    await expect(page.getByRole("heading", { name: "Your Substack Token" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
 
     // Test copy button
-    await page.getByRole("button", { name: "Copy Token" }).click()
-    await expect(page.getByRole("button", { name: "Copied!" })).toBeVisible()
+    await page.getByTestId("copy-token-button").click()
+    await expect(page.getByTestId("copy-token-button")).toHaveText("Copied!")
 
     // Button should revert back after 2 seconds
-    await expect(page.getByRole("button", { name: "Copy Token" })).toBeVisible({ timeout: 3000 })
+    await expect(page.getByTestId("copy-token-button")).toHaveText("Copy Token", { timeout: 3000 })
   })
 
   test("should allow starting over from token display", async ({ page }) => {
     await page.goto("/")
 
     // Complete flow
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByRole("button", { name: /Skip.*2FA/i }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("skip-2fa-button").click()
 
     // Token display
-    await expect(page.getByRole("heading", { name: "Your Substack Token" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
 
     // Click start over
-    await page.getByRole("button", { name: "Start Over" }).click()
+    await page.getByTestId("start-over-button").click()
 
     // Should be back at email step
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await expect(page.getByPlaceholder("Your email")).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await expect(page.getByTestId("email-input")).toBeVisible()
   })
 
   test("should toggle token visibility", async ({ page }) => {
     await page.goto("/")
 
     // Complete flow to token step
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByRole("button", { name: /Skip.*2FA/i }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("skip-2fa-button").click()
 
     // Token display
-    await expect(page.getByRole("heading", { name: "Your Substack Token" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
 
     // Token should be hidden by default (password type)
-    const tokenInput = page.locator("input[readonly]")
-    await expect(tokenInput).toHaveAttribute("type", "password")
+    await expect(page.getByTestId("token-input")).toHaveAttribute("type", "password")
 
     // Click eye icon to show token
-    await page.locator("button").filter({ has: page.locator("svg") }).first().click()
+    await page.getByTestId("toggle-visibility-button").click()
 
     // Token should now be visible (text type)
-    await expect(tokenInput).toHaveAttribute("type", "text")
+    await expect(page.getByTestId("token-input")).toHaveAttribute("type", "text")
   })
 })
 
@@ -169,12 +160,12 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
     })
 
     await page.goto("/")
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Should show error and stay on email step
-    await expect(page.getByText(/invalid|failed|error/i)).toBeVisible({ timeout: 10000 })
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
+    await expect(page.getByTestId("error-message")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
   })
 
   test("should handle OTP verification error", async ({ page, request }) => {
@@ -186,19 +177,18 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
     await page.goto("/")
 
     // Complete email step
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Verification step
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
     // Should show error and stay on verification step
-    await expect(page.getByText(/failed|error|incorrect/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("error-message")).toBeVisible({ timeout: 10000 })
   })
 
   test("should handle MFA verification error", async ({ page, request }) => {
@@ -210,24 +200,23 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
     await page.goto("/")
 
     // Complete email step
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Complete verification step
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
-    const codeInputs = page.locator('input[id^="code-"]')
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
     for (let i = 0; i < 6; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("continue-button").click()
 
     // MFA step
-    await expect(page.getByRole("heading", { name: "Two-factor authentication" })).toBeVisible()
-    await page.getByPlaceholder("Type your 6-digit code here...").fill("123456")
-    await page.getByRole("button", { name: "Confirm" }).click()
+    await expect(page.getByTestId("step-title")).toHaveText("Two-factor authentication")
+    await page.getByTestId("mfa-input").fill("123456")
+    await page.getByTestId("confirm-button").click()
 
     // Should show error and stay on MFA step
-    await expect(page.getByText(/failed|error|incorrect/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId("error-message")).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -239,42 +228,40 @@ test.describe("Auth Flow - Verification Step Details", () => {
   test("should auto-focus next input when entering verification code", async ({ page }) => {
     await page.goto("/")
 
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
 
     // Type in first input and verify focus moves
-    const codeInputs = page.locator('input[id^="code-"]')
-    await codeInputs.nth(0).focus()
-    await codeInputs.nth(0).fill("1")
+    await page.getByTestId("code-input-0").focus()
+    await page.getByTestId("code-input-0").fill("1")
 
     // Second input should be focused
-    await expect(codeInputs.nth(1)).toBeFocused()
+    await expect(page.getByTestId("code-input-1")).toBeFocused()
   })
 
   test("should disable continue button until all 6 digits entered", async ({ page }) => {
     await page.goto("/")
 
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByRole("heading", { name: "Check your email to continue" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue")
 
-    const continueButton = page.getByRole("button", { name: "Continue" })
-    const codeInputs = page.locator('input[id^="code-"]')
+    const continueButton = page.getByTestId("continue-button")
 
     // Button should be disabled initially
     await expect(continueButton).toBeDisabled()
 
     // Fill 5 digits - should still be disabled
     for (let i = 0; i < 5; i++) {
-      await codeInputs.nth(i).fill(String(i + 1))
+      await page.getByTestId(`code-input-${i}`).fill(String(i + 1))
     }
     await expect(continueButton).toBeDisabled()
 
     // Fill last digit - should be enabled
-    await codeInputs.nth(5).fill("6")
+    await page.getByTestId("code-input-5").fill("6")
     await expect(continueButton).toBeEnabled()
   })
 })

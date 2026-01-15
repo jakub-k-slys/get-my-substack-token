@@ -19,7 +19,7 @@ export const TokenDisplayStep = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground text-center mb-6">
+      <p data-testid="token-message" className="text-sm text-muted-foreground text-center mb-6">
         Your authentication token has been generated successfully. Keep it secure!
       </p>
 
@@ -27,12 +27,14 @@ export const TokenDisplayStep = () => {
         <div className="relative">
           <Input
             type={showToken ? "text" : "password"}
+            data-testid="token-input"
             value={state.token}
             readOnly
             className="bg-input border-border text-card-foreground h-12 pr-20 font-mono text-sm"
           />
           <button
             type="button"
+            data-testid="toggle-visibility-button"
             onClick={() => setShowToken(!showToken)}
             className="absolute right-12 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
           >
@@ -40,6 +42,7 @@ export const TokenDisplayStep = () => {
           </button>
           <button
             type="button"
+            data-testid="copy-inline-button"
             onClick={handleCopyToken}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-card-foreground transition-colors"
           >
@@ -48,6 +51,7 @@ export const TokenDisplayStep = () => {
         </div>
 
         <Button
+          data-testid="copy-token-button"
           onClick={handleCopyToken}
           className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-12 text-base font-medium"
         >
@@ -61,7 +65,7 @@ export const TokenDisplayStep = () => {
         </p>
       </div>
 
-      <Button variant="ghost" onClick={reset} className="w-full text-muted-foreground">
+      <Button data-testid="start-over-button" variant="ghost" onClick={reset} className="w-full text-muted-foreground">
         Start Over
       </Button>
     </div>
