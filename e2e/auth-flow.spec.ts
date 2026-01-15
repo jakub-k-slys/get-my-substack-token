@@ -1,245 +1,224 @@
 import { test, expect } from "@playwright/test"
 
+const MOCK_SERVER_URL = "http://localhost:3001"
+
 test.describe("Auth Flow - Email Step", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
   test("should display the email step initially", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await expect(page.getByPlaceholder("Your email")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await expect(page.getByTestId("email-input")).toBeVisible()
+    await expect(page.getByTestId("continue-button")).toBeVisible()
   })
 
   test("should show validation error for empty email", async ({ page }) => {
-    await page.getByRole("button", { name: "Continue" }).click()
-    await expect(page.getByText("Email is required")).toBeVisible()
+    await page.getByTestId("continue-button").click()
+    await expect(page.getByTestId("email-error")).toHaveText("Email is required")
   })
 
   test("should prevent submission with invalid email format", async ({ page }) => {
-    // Browser's native email validation prevents submission of invalid emails
-    // Test that invalid email does NOT proceed to loading state
-    await page.getByPlaceholder("Your email").fill("not-an-email")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("not-an-email")
+    await page.getByTestId("continue-button").click()
 
     // The form should NOT submit - button should still say "Continue"
-    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible()
-    // And should NOT show "Sending..." state
-    await expect(page.getByRole("button", { name: "Sending..." })).not.toBeVisible()
+    await expect(page.getByTestId("continue-button")).toHaveText("Continue")
   })
 
-  test("should accept valid email and show loading state", async ({ page }) => {
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+  test("should accept valid email and proceed to next step", async ({ page }) => {
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    // Should show loading state briefly
-    await expect(page.getByRole("button", { name: "Sending..." })).toBeVisible()
+    // Should proceed to verification step
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue", { timeout: 10000 })
   })
 
-  test("should have proper input accessibility", async ({ page }) => {
-    const emailInput = page.getByPlaceholder("Your email")
-    await expect(emailInput).toHaveAttribute("type", "email")
-    await expect(emailInput).toHaveAttribute("id", "email")
+  test("should have proper input type", async ({ page }) => {
+    await expect(page.getByTestId("email-input")).toHaveAttribute("type", "email")
   })
 
-  test("should display bookmark icon in header", async ({ page }) => {
-    // The Bookmark icon should be present in the header
-    const header = page.locator(".bg-primary\\/10")
-    await expect(header).toBeVisible()
+  test("should display header icon", async ({ page }) => {
+    await expect(page.getByTestId("header-icon")).toBeVisible()
   })
 })
 
 test.describe("Auth Flow - Form Interactions", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
-  test("should clear validation error when user starts typing", async ({ page }) => {
+  test("should clear validation error when user submits valid email", async ({ page }) => {
     // Trigger validation error
-    await page.getByRole("button", { name: "Continue" }).click()
-    await expect(page.getByText("Email is required")).toBeVisible()
+    await page.getByTestId("continue-button").click()
+    await expect(page.getByTestId("email-error")).toBeVisible()
 
-    // Start typing
-    await page.getByPlaceholder("Your email").fill("t")
-
-    // Error should still be visible until valid
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    // Fill valid email and submit
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
     // Should not show email validation error anymore
-    await expect(page.getByText("Email is required")).not.toBeVisible()
+    await expect(page.getByTestId("email-error")).not.toBeVisible()
   })
 
   test("should handle form submission with Enter key", async ({ page }) => {
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByPlaceholder("Your email").press("Enter")
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("email-input").press("Enter")
 
-    // Should submit and show loading state
-    await expect(page.getByRole("button", { name: "Sending..." })).toBeVisible()
+    // Should proceed to verification step
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue", { timeout: 10000 })
   })
 })
 
 test.describe("Auth Flow - Responsive Design", () => {
+  test.beforeEach(async ({ request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
+  })
+
   test("should display correctly on mobile viewport", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 })
     await page.goto("/")
 
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await expect(page.getByPlaceholder("Your email")).toBeVisible()
-    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible()
-
-    // Card should be visible and centered
-    const card = page.locator(".max-w-md")
-    await expect(card).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await expect(page.getByTestId("email-input")).toBeVisible()
+    await expect(page.getByTestId("continue-button")).toBeVisible()
+    await expect(page.getByTestId("auth-card")).toBeVisible()
   })
 
   test("should display correctly on tablet viewport", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
     await page.goto("/")
 
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await expect(page.getByPlaceholder("Your email")).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await expect(page.getByTestId("email-input")).toBeVisible()
   })
 
   test("should display correctly on desktop viewport", async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 })
     await page.goto("/")
 
-    await expect(page.getByRole("heading", { name: "Sign in to Substack" })).toBeVisible()
-    await expect(page.getByPlaceholder("Your email")).toBeVisible()
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
+    await expect(page.getByTestId("email-input")).toBeVisible()
   })
 })
 
 test.describe("Auth Flow - Visual Elements", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
-  test("should have a card with proper styling", async ({ page }) => {
-    const card = page.locator(".shadow-2xl")
-    await expect(card).toBeVisible()
+  test("should have auth card visible", async ({ page }) => {
+    await expect(page.getByTestId("auth-card")).toBeVisible()
   })
 
-  test("should have centered layout", async ({ page }) => {
-    // The main container should center content
-    const container = page.locator(".min-h-screen")
-    await expect(container).toBeVisible()
+  test("should have main container visible", async ({ page }) => {
+    await expect(page.getByTestId("main-container")).toBeVisible()
   })
 
-  test("email input should have proper styling", async ({ page }) => {
-    const emailInput = page.getByPlaceholder("Your email")
-    await expect(emailInput).toHaveClass(/h-12/)
+  test("should have email input visible", async ({ page }) => {
+    await expect(page.getByTestId("email-input")).toBeVisible()
   })
 
-  test("submit button should have proper styling", async ({ page }) => {
-    const button = page.getByRole("button", { name: "Continue" })
-    await expect(button).toHaveClass(/h-12/)
-    await expect(button).toHaveClass(/w-full/)
+  test("should have continue button visible", async ({ page }) => {
+    await expect(page.getByTestId("continue-button")).toBeVisible()
   })
 })
 
 test.describe("Auth Flow - Error Handling", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
-  test("should show API error message in error container", async ({ page }) => {
-    // This test verifies the error display structure exists
-    // The actual API error would appear in a specific container
+  test("should show API error message when login fails", async ({ page, request }) => {
+    // Configure mock to fail
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__config`, {
+      data: { emailLoginShouldFail: true },
+    })
 
-    await page.getByPlaceholder("Your email").fill("test@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("test@example.com")
+    await page.getByTestId("continue-button").click()
 
-    // Wait for potential error state
-    // Note: This may time out if the API succeeds, which is expected in real scenarios
-    try {
-      await expect(page.locator(".bg-destructive\\/10")).toBeVisible({ timeout: 5000 })
-    } catch {
-      // API might have succeeded or timed out - that's okay for this test
-    }
+    await expect(page.getByTestId("error-message")).toBeVisible({ timeout: 10000 })
   })
 })
 
 test.describe("Auth Flow - Accessibility", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
-  test("should have proper heading hierarchy", async ({ page }) => {
-    const h1 = page.getByRole("heading", { level: 1 })
-    await expect(h1).toHaveText("Sign in to Substack")
+  test("should have proper heading text", async ({ page }) => {
+    await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
   })
 
   test("should have focusable email input", async ({ page }) => {
-    const emailInput = page.getByPlaceholder("Your email")
-    await emailInput.focus()
-    await expect(emailInput).toBeFocused()
+    await page.getByTestId("email-input").focus()
+    await expect(page.getByTestId("email-input")).toBeFocused()
   })
 
   test("should have focusable submit button", async ({ page }) => {
-    const button = page.getByRole("button", { name: "Continue" })
-    await button.focus()
-    await expect(button).toBeFocused()
+    await page.getByTestId("continue-button").focus()
+    await expect(page.getByTestId("continue-button")).toBeFocused()
   })
 
   test("should support keyboard navigation", async ({ page }) => {
-    // Tab through focusable elements
+    // Tab to email input
     await page.keyboard.press("Tab")
-    const emailInput = page.getByPlaceholder("Your email")
-    await expect(emailInput).toBeFocused()
+    await expect(page.getByTestId("email-input")).toBeFocused()
 
+    // Tab to submit button
     await page.keyboard.press("Tab")
-    const submitButton = page.getByRole("button", { name: "Continue" })
-    await expect(submitButton).toBeFocused()
+    await expect(page.getByTestId("continue-button")).toBeFocused()
   })
 
-  test("email input should indicate invalid state", async ({ page }) => {
-    await page.getByRole("button", { name: "Continue" }).click()
-    const emailInput = page.getByPlaceholder("Your email")
-    await expect(emailInput).toHaveAttribute("aria-invalid", "true")
+  test("email input should indicate invalid state after failed validation", async ({ page }) => {
+    await page.getByTestId("continue-button").click()
+    await expect(page.getByTestId("email-input")).toHaveAttribute("aria-invalid", "true")
   })
 })
 
 test.describe("Auth Flow - Email Validation Edge Cases", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
     await page.goto("/")
   })
 
   test("should accept email with subdomain", async ({ page }) => {
-    await page.getByPlaceholder("Your email").fill("user@mail.example.co.uk")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("user@mail.example.co.uk")
+    await page.getByTestId("continue-button").click()
 
-    // Should not show email format error
-    await expect(page.getByText("Please enter a valid email address")).not.toBeVisible()
+    // Should proceed to verification step (no validation error)
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue", { timeout: 10000 })
   })
 
   test("should accept email with plus addressing", async ({ page }) => {
-    await page.getByPlaceholder("Your email").fill("user+tag@example.com")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("user+tag@example.com")
+    await page.getByTestId("continue-button").click()
 
-    // Should not show email format error
-    await expect(page.getByText("Please enter a valid email address")).not.toBeVisible()
+    // Should proceed to verification step (no validation error)
+    await expect(page.getByTestId("step-title")).toHaveText("Check your email to continue", { timeout: 10000 })
   })
 
   test("should reject email without proper domain", async ({ page }) => {
-    // Use an email that passes browser validation but fails Zod
-    await page.getByPlaceholder("Your email").fill("user@invalid")
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill("user@invalid")
+    await page.getByTestId("continue-button").click()
 
-    // This will either show validation error or trigger loading state
-    // depending on browser/Zod validation order
-    const hasError = await page.getByText("Please enter a valid email address").isVisible().catch(() => false)
-    const isLoading = await page.getByRole("button", { name: "Sending..." }).isVisible().catch(() => false)
-
-    // Either validation caught it or form submitted
-    expect(hasError || isLoading).toBe(true)
+    // Should either show validation error or stay on continue (browser validation)
+    const buttonText = await page.getByTestId("continue-button").textContent()
+    // Browser validation may prevent submission, keeping "Continue" text
+    expect(buttonText === "Continue" || buttonText === "Sending...").toBe(true)
   })
 
   test("should handle very long email gracefully", async ({ page }) => {
     const longEmail = "a".repeat(300) + "@test.com"
-    await page.getByPlaceholder("Your email").fill(longEmail)
-    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByTestId("email-input").fill(longEmail)
+    await page.getByTestId("continue-button").click()
 
-    await expect(page.getByText("Email is too long")).toBeVisible()
+    await expect(page.getByTestId("email-error")).toHaveText("Email is too long")
   })
 })

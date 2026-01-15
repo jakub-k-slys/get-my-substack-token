@@ -18,11 +18,11 @@ const AuthFlowContent = () => {
   }
 
   return (
-    <Card className="w-full max-w-md bg-card text-card-foreground shadow-2xl">
+    <Card data-testid="auth-card" className="w-full max-w-md bg-card text-card-foreground shadow-2xl">
       <div className="p-8">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-primary/10 p-3 rounded-lg mb-4">
+          <div data-testid="header-icon" className="bg-primary/10 p-3 rounded-lg mb-4">
             <Bookmark className="w-8 h-8 text-primary" />
           </div>
           <h1 data-testid="step-title" className="text-2xl font-semibold text-center">{currentStepTitle}</h1>
