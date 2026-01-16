@@ -1,17 +1,37 @@
 "use server"
 
 import axios from "axios"
+import { cookies } from "next/headers"
 
-const api = axios.create({
-  baseURL: process.env.SUBSTACK_API_URL || 'https://substack.com/api/v1/',
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'PostmanRuntime/7.51.0',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive'
+const getTestIdCookie = async (): Promise<string | undefined> => {
+  const cookieStore = await cookies()
+  return cookieStore.get("x-test-id")?.value
+}
+
+const buildCookieHeader = (testId: string | undefined, additionalCookies?: string): string => {
+  const parts: string[] = []
+  if (testId) parts.push(`x-test-id=${testId}`)
+  if (additionalCookies) parts.push(additionalCookies)
+  return parts.join("; ")
+}
+
+const createApi = async () => {
+  const testId = await getTestIdCookie()
+
+  return {
+    instance: axios.create({
+      baseURL: process.env.SUBSTACK_API_URL || 'https://substack.com/api/v1/',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'PostmanRuntime/7.51.0',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+      }
+    }),
+    testId,
   }
-})
+}
 
 // Utility function to extract token from response headers
 const extractTokenFromHeaders = (headers: Record<string, any>): string | undefined => {
@@ -30,12 +50,16 @@ const extractTokenFromHeaders = (headers: Record<string, any>): string | undefin
 export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
   console.log(`email OTP initiated | Using email ${email}`)
   try {
+    const { instance: api, testId } = await createApi()
     const body =  {
       email: email,
       redirect: '/home',
       can_create_user: true,
     }
-    const response = await api.post('/email-login', body)
+    const cookieHeader = buildCookieHeader(testId)
+    const response = await api.post('/email-login', body, {
+      headers: cookieHeader ? { Cookie: cookieHeader } : {},
+    })
     if (response.data) {
       console.log(response.data)
     }
@@ -58,14 +82,14 @@ export const emailLogin = async (email: string): Promise<{ token: string | undef
 export const verifyEmailOtp = async (code: string, email: string, token: string | undefined) => {
   console.log(`email OTP verification step | Using code ${code}, email ${email} and token ${token}`)
   try {
+    const { instance: api, testId } = await createApi()
+    const cookieHeader = buildCookieHeader(testId, token ? `substack.sid=${token}` : undefined)
     const response = await api.post("/email-otp-login/complete", {
       code: code,
       email: email,
       redirect: "https://substack.com/home",
     }, {
-      headers: {
-        ...(token && { Cookie: `substack.sid=${token}` }),
-      },
+      headers: cookieHeader ? { Cookie: cookieHeader } : {},
     })
 
     console.log("OTP verification response status:", response.status)
@@ -92,14 +116,14 @@ export const verifyMfa = async (
 ): Promise<{ success: boolean; token?: string; error?: string }> => {
   console.log(`MFA verification step | Using code: ${code} and token: ${token}`)
   try {
+    const { instance: api, testId } = await createApi()
+    const cookieHeader = buildCookieHeader(testId, token ? `substack.sid=${token}` : undefined)
     const response = await api.post("/mfa-login", {
       code: code,
       token: "",
       redirect: "",
     }, {
-      headers: {
-        ...(token && { Cookie: `substack.sid=${token}` }),
-      },
+      headers: cookieHeader ? { Cookie: cookieHeader } : {},
     })
 
     console.log("MFA verification response status:", response.status)

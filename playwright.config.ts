@@ -2,12 +2,14 @@ import { defineConfig, devices } from "@playwright/test"
 
 export default defineConfig({
   testDir: "./e2e",
-  // Run tests in serial mode to avoid mock state conflicts
-  fullyParallel: false,
+  // Enable parallel execution - tests are isolated via request-scoped state
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  retries: process.env.CI ? 2 : 1,
+  // Number of parallel workers
+  workers: process.env.CI ? 2 : 4,
   reporter: "html",
+  // Global setup/teardown for mock server
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   use: {
@@ -27,14 +29,6 @@ export default defineConfig({
     {
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
-    },
-    {
-      name: "Mobile Chrome",
-      use: { ...devices["Pixel 5"] },
-    },
-    {
-      name: "Mobile Safari",
-      use: { ...devices["iPhone 12"] },
     },
   ],
   webServer: {

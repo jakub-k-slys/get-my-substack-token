@@ -1,14 +1,7 @@
-import { test, expect } from "@playwright/test"
-
-const MOCK_SERVER_URL = "http://localhost:3001"
+import { test, expect } from "./fixtures"
 
 test.describe("Auth Flow - Complete Flow with Mock Server", () => {
-  test.beforeEach(async ({ request }) => {
-    // Reset mock server state before each test
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
-  })
-
-  test("should complete full auth flow: email -> verification -> 2FA -> token", async ({ page }) => {
+  test("should complete full auth flow: email -> verification -> 2FA -> token", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     // Step 1: Email
@@ -38,7 +31,7 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await expect(page.getByTestId("copy-token-button")).toBeVisible()
   })
 
-  test("should allow skipping 2FA step", async ({ page }) => {
+  test("should allow skipping 2FA step", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     // Email step
@@ -60,7 +53,7 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await expect(page.getByTestId("step-title")).toHaveText("Your Substack Token")
   })
 
-  test("should show token and allow copying", async ({ page, context }) => {
+  test("should show token and allow copying", async ({ page, context, resetMockState }) => {
     // Grant clipboard permissions
     await context.grantPermissions(["clipboard-read", "clipboard-write"])
 
@@ -90,7 +83,7 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await expect(page.getByTestId("copy-token-button")).toHaveText("Copy Token", { timeout: 3000 })
   })
 
-  test("should allow starting over from token display", async ({ page }) => {
+  test("should allow starting over from token display", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     // Complete flow
@@ -117,7 +110,7 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
     await expect(page.getByTestId("email-input")).toBeVisible()
   })
 
-  test("should toggle token visibility", async ({ page }) => {
+  test("should toggle token visibility", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     // Complete flow to token step
@@ -148,16 +141,9 @@ test.describe("Auth Flow - Complete Flow with Mock Server", () => {
 })
 
 test.describe("Auth Flow - Error Handling with Mock Server", () => {
-  test.beforeEach(async ({ request }) => {
-    // Reset mock server state before each test
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
-  })
-
-  test("should handle email login error", async ({ page, request }) => {
+  test("should handle email login error", async ({ page, configureMock }) => {
     // Configure mock to fail email login
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__config`, {
-      data: { emailLoginShouldFail: true },
-    })
+    await configureMock({ emailLoginShouldFail: true })
 
     await page.goto("/")
     await page.getByTestId("email-input").fill("test@example.com")
@@ -168,11 +154,9 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
     await expect(page.getByTestId("step-title")).toHaveText("Sign in to Substack")
   })
 
-  test("should handle OTP verification error", async ({ page, request }) => {
+  test("should handle OTP verification error", async ({ page, configureMock }) => {
     // Configure mock to fail OTP verification
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__config`, {
-      data: { otpShouldFail: true },
-    })
+    await configureMock({ otpShouldFail: true })
 
     await page.goto("/")
 
@@ -191,11 +175,9 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
     await expect(page.getByTestId("error-message")).toBeVisible({ timeout: 10000 })
   })
 
-  test("should handle MFA verification error", async ({ page, request }) => {
+  test("should handle MFA verification error", async ({ page, configureMock }) => {
     // Configure mock to fail MFA verification
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__config`, {
-      data: { mfaShouldFail: true },
-    })
+    await configureMock({ mfaShouldFail: true })
 
     await page.goto("/")
 
@@ -221,11 +203,7 @@ test.describe("Auth Flow - Error Handling with Mock Server", () => {
 })
 
 test.describe("Auth Flow - Verification Step Details", () => {
-  test.beforeEach(async ({ request }) => {
-    await request.post(`${MOCK_SERVER_URL}/api/v1/__reset`)
-  })
-
-  test("should auto-focus next input when entering verification code", async ({ page }) => {
+  test("should auto-focus next input when entering verification code", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     await page.getByTestId("email-input").fill("test@example.com")
@@ -241,7 +219,7 @@ test.describe("Auth Flow - Verification Step Details", () => {
     await expect(page.getByTestId("code-input-1")).toBeFocused()
   })
 
-  test("should disable continue button until all 6 digits entered", async ({ page }) => {
+  test("should disable continue button until all 6 digits entered", async ({ page, resetMockState }) => {
     await page.goto("/")
 
     await page.getByTestId("email-input").fill("test@example.com")
