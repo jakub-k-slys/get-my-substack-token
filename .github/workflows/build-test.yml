@@ -53,7 +53,7 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Running unit tests
-        run: pnpm test:unit
+        run: pnpm test
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
