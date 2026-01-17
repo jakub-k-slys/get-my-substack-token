@@ -6,6 +6,7 @@ import type {
   StateTransition,
 } from "@/components/auth-flow/auth-flow.types"
 import { emailLogin, verifyEmailOtp, verifyMfa } from "@/app/actions/substack-auth"
+import { logger } from "@/lib/logger"
 
 // Initial state
 const initialState: AuthFlowContext = {
@@ -78,7 +79,7 @@ const validateTransition = (currentStep: AuthFlowState, action: AuthFlowAction, 
 const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFlowContext => {
   // Validate transition
   if (!validateTransition(state.currentStep, action, state)) {
-    console.warn(`Invalid transition from ${state.currentStep} with action ${action.type}`)
+    logger.warn("Invalid state transition", { from: state.currentStep, action: action.type })
     return state
   }
 
