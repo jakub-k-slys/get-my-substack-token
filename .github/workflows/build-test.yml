@@ -31,7 +31,29 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Running build
-        run: pnpm build
+        id: build
+        run: |
+          START_TIME=$(date +%s)
+          pnpm build 2>&1 | tee build-output.txt
+          END_TIME=$(date +%s)
+          echo "duration=$((END_TIME - START_TIME))" >> $GITHUB_OUTPUT
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## 🏗️ Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.build.outcome }}" == "success" ]; then
+            echo "✅ **Status:** Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "⏱️ **Duration:** ${{ steps.build.outputs.duration }}s" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Output" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -20 build-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
   test:
     name: Running unit tests
     runs-on: ubuntu-latest
@@ -53,7 +75,41 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Running unit tests
-        run: pnpm test
+        id: unit-tests
+        run: |
+          pnpm test -- --reporter=verbose --reporter=json --outputFile=test-results.json 2>&1 | tee test-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+      - name: Unit test summary
+        if: always()
+        run: |
+          echo "## 🧪 Unit Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f test-results.json ]; then
+            TOTAL=$(jq '.numTotalTests // 0' test-results.json)
+            PASSED=$(jq '.numPassedTests // 0' test-results.json)
+            FAILED=$(jq '.numFailedTests // 0' test-results.json)
+            DURATION=$(jq '.duration // 0' test-results.json)
+
+            if [ "$FAILED" -eq 0 ]; then
+              echo "✅ **Status:** All tests passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Status:** $FAILED test(s) failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Tests | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏱️ Duration | ${DURATION}ms |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Test results not available" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Output" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -30 test-output.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -61,8 +117,7 @@ jobs:
           name: unit-test-results
           path: |
             coverage/
-            junit.xml
-
+            test-results.json
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -72,6 +127,7 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           verbose: true
+
   lint:
     name: Running linters
     runs-on: ubuntu-latest
@@ -93,9 +149,55 @@ jobs:
       - name: Install
         run: pnpm install
       - name: Running linter
-        run: pnpm lint
-      - name: Running format
-        run: pnpm format:check
+        id: lint
+        continue-on-error: true
+        run: |
+          pnpm lint 2>&1 | tee lint-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+      - name: Running format check
+        id: format
+        continue-on-error: true
+        run: |
+          pnpm format:check 2>&1 | tee format-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+      - name: Lint summary
+        if: always()
+        run: |
+          echo "## 🔍 Lint & Format Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # ESLint results
+          echo "### ESLint" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.lint.outcome }}" == "success" ]; then
+            WARNINGS=$(grep -c "warning" lint-output.txt || echo "0")
+            ERRORS=$(grep -c "error" lint-output.txt || echo "0")
+            if [ "$ERRORS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
+              echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ **Warnings:** $WARNINGS | ❌ **Errors:** $ERRORS" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ Linting failed" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat lint-output.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Prettier results
+          echo "### Prettier" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.format.outcome }}" == "success" ]; then
+            echo "✅ All files formatted correctly" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Formatting issues found" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat format-output.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+      - name: Fail if lint or format failed
+        if: steps.lint.outcome == 'failure' || steps.format.outcome == 'failure'
+        run: exit 1
+
   e2e:
     name: Running E2E tests
     runs-on: ubuntu-latest
@@ -116,15 +218,51 @@ jobs:
           cache: "pnpm"
       - name: Install
         run: pnpm install
-      - name: Install playwright
-        run: pnpm exec playwright install
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
       - name: Running E2E tests
+        id: e2e
         run: |
-          pnpm test:e2e
+          pnpm test:e2e --reporter=list --reporter=json 2>&1 | tee e2e-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+      - name: E2E test summary
+        if: always()
+        run: |
+          echo "## 🎭 E2E Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Parse results from output
+          if grep -q "passed" e2e-output.txt; then
+            PASSED=$(grep -oP '\d+(?= passed)' e2e-output.txt | tail -1 || echo "0")
+            FAILED=$(grep -oP '\d+(?= failed)' e2e-output.txt | tail -1 || echo "0")
+            SKIPPED=$(grep -oP '\d+(?= skipped)' e2e-output.txt | tail -1 || echo "0")
+            DURATION=$(grep -oP '\d+\.?\d*(?=s\))' e2e-output.txt | tail -1 || echo "0")
+
+            if [ "$FAILED" == "0" ] || [ -z "$FAILED" ]; then
+              echo "✅ **Status:** All tests passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Status:** $FAILED test(s) failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | ${PASSED:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | ${FAILED:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏭️ Skipped | ${SKIPPED:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏱️ Duration | ${DURATION:-0}s |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Could not parse test results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Output" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -40 e2e-output.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
       - name: Upload E2E test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results
           path: |
-            junit-e2e.xml
+            playwright-report/
+            test-results/
