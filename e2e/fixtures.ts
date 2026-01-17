@@ -1,18 +1,21 @@
-import { test as base, expect } from "@playwright/test"
+import { test as base, createBdd } from "playwright-bdd"
+import { expect } from "@playwright/test"
 import { randomUUID } from "crypto"
 
 const MOCK_SERVER_URL = "http://localhost:3001"
 
 // Define fixture types
+export type MockConfig = {
+  emailLoginShouldFail?: boolean
+  otpShouldFail?: boolean
+  mfaShouldFail?: boolean
+  mfaRequired?: boolean
+}
+
 type TestFixtures = {
   testId: string
   resetMockState: () => Promise<void>
-  configureMock: (config: Partial<{
-    emailLoginShouldFail: boolean
-    otpShouldFail: boolean
-    mfaShouldFail: boolean
-    mfaRequired: boolean
-  }>) => Promise<void>
+  configureMock: (config: MockConfig) => Promise<void>
 }
 
 // Create extended test with fixtures
@@ -54,12 +57,7 @@ export const test = base.extend<TestFixtures>({
       headers: { "x-test-id": testId },
     })
 
-    const configure = async (config: Partial<{
-      emailLoginShouldFail: boolean
-      otpShouldFail: boolean
-      mfaShouldFail: boolean
-      mfaRequired: boolean
-    }>) => {
+    const configure = async (config: MockConfig) => {
       await fetch(`${MOCK_SERVER_URL}/api/v1/__config`, {
         method: "POST",
         headers: {
@@ -73,4 +71,6 @@ export const test = base.extend<TestFixtures>({
   },
 })
 
+// Export BDD functions bound to our custom fixtures
+export const { Given, When, Then, Before, After } = createBdd(test)
 export { expect }

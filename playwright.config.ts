@@ -1,7 +1,14 @@
 import { defineConfig, devices } from "@playwright/test"
+import { defineBddConfig } from "playwright-bdd"
+
+const testDir = defineBddConfig({
+  features: "e2e/features/**/*.feature",
+  steps: ["e2e/steps/**/*.ts", "e2e/fixtures.ts"],
+  outputDir: "e2e/.features-gen",
+})
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir,
   // Enable parallel execution - tests are isolated via request-scoped state
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

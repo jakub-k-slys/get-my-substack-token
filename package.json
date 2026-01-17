@@ -10,10 +10,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:all": "vitest run && playwright test"
+    "test:e2e": "pnpm exec bddgen && playwright test",
+    "test:e2e:ui": "pnpm exec bddgen && playwright test --ui",
+    "test:e2e:headed": "pnpm exec bddgen && playwright test --headed",
+    "test:all": "vitest run && pnpm exec bddgen && playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -83,6 +83,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "express": "^5.2.1",
     "jsdom": "^27.4.0",
+    "playwright-bdd": "^8.4.2",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.21.0",
