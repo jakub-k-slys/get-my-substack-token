@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest"
-import {
-  emailSchema,
-  verificationCodeSchema,
-  twoFactorSchema,
-  authFlowSchema,
-} from "./auth-schemas"
+import { emailSchema, verificationCodeSchema, twoFactorSchema, authFlowSchema } from "./auth-schemas"
 
 describe("emailSchema", () => {
   it("should accept a valid email", () => {

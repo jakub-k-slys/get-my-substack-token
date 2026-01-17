@@ -38,17 +38,20 @@ The application proxies Substack's authentication API through Next.js Server Act
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/jakub-k-slys/get-my-substack-token.git
 cd get-my-substack-token
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Run the development server:
+
 ```bash
 pnpm dev
 ```
@@ -141,6 +144,7 @@ The project includes a GitHub Actions workflow for automated deployment to GitHu
 - Deploys to GitHub Pages
 
 You can also deploy to:
+
 - [Vercel](https://vercel.com) (recommended for Next.js)
 - [Netlify](https://netlify.com)
 - Any Node.js hosting platform

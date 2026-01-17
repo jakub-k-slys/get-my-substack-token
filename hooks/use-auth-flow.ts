@@ -31,11 +31,7 @@ const transitions: StateTransition[] = [
 ]
 
 // Validate state transition
-const validateTransition = (
-  currentStep: AuthFlowState,
-  action: AuthFlowAction,
-  context: AuthFlowContext
-): boolean => {
+const validateTransition = (currentStep: AuthFlowState, action: AuthFlowAction, context: AuthFlowContext): boolean => {
   // Global actions are always allowed
   if (action.type === "RESET" || action.type === "RETRY") return true
 
@@ -68,9 +64,7 @@ const validateTransition = (
   }
 
   // Find matching transition
-  const transition = transitions.find(
-    (t) => t.from === currentStep && t.action === action.type
-  )
+  const transition = transitions.find((t) => t.from === currentStep && t.action === action.type)
 
   if (!transition) return false
 
@@ -87,20 +81,6 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
     console.warn(`Invalid transition from ${state.currentStep} with action ${action.type}`)
     return state
   }
-
-  // Add to history
-  const addToHistory = (newStep?: AuthFlowState) => ({
-    ...state.history,
-    ...(newStep
-      ? [
-          {
-            step: newStep,
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ]
-      : []),
-  })
 
   switch (action.type) {
     case "EMAIL_SUBMIT_START":

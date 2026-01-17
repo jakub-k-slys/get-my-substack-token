@@ -1,10 +1,12 @@
 import type { FullConfig } from "@playwright/test"
 import type { Server } from "http"
 import express, { Request, Response } from "express"
-import { spawn, ChildProcess } from "child_process"
 
 const MOCK_SERVER_PORT = 3001
-const APP_PORT = 3000
+
+declare global {
+  var __MOCK_SERVER__: Server | undefined
+}
 
 // Create mock server with request-scoped state (identified by x-test-id cookie)
 function createMockServer() {
@@ -12,12 +14,15 @@ function createMockServer() {
   app.use(express.json())
 
   // Store state per test ID
-  const testStates = new Map<string, {
-    emailLoginShouldFail: boolean
-    otpShouldFail: boolean
-    mfaShouldFail: boolean
-    mfaRequired: boolean
-  }>()
+  const testStates = new Map<
+    string,
+    {
+      emailLoginShouldFail: boolean
+      otpShouldFail: boolean
+      mfaShouldFail: boolean
+      mfaRequired: boolean
+    }
+  >()
 
   const getDefaultState = () => ({
     emailLoginShouldFail: false,
@@ -128,7 +133,7 @@ function createMockServer() {
   return app
 }
 
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
   console.log("Starting mock server...")
 
   // Start mock server
@@ -141,7 +146,7 @@ async function globalSetup(config: FullConfig) {
   })
 
   // Store for teardown
-  ;(globalThis as any).__MOCK_SERVER__ = mockServer
+  globalThis.__MOCK_SERVER__ = mockServer
 }
 
 export default globalSetup

@@ -20,44 +20,42 @@ const createApi = async () => {
 
   return {
     instance: axios.create({
-      baseURL: process.env.SUBSTACK_API_URL || 'https://substack.com/api/v1/',
+      baseURL: process.env.SUBSTACK_API_URL || "https://substack.com/api/v1/",
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'PostmanRuntime/7.51.0',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-      }
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "PostmanRuntime/7.51.0",
+        "Accept-Encoding": "gzip, deflate, br",
+        Connection: "keep-alive",
+      },
     }),
     testId,
   }
 }
 
 // Utility function to extract token from response headers
-const extractTokenFromHeaders = (headers: Record<string, any>): string | undefined => {
-  const setCookieHeaders = headers['set-cookie']
+const extractTokenFromHeaders = (headers: { "set-cookie"?: string[] }): string | undefined => {
+  const setCookieHeaders = headers["set-cookie"]
   if (!setCookieHeaders) return undefined
 
-  const substackSid = setCookieHeaders.find((cookie: string) =>
-    cookie.includes("substack.sid")
-  )
+  const substackSid = setCookieHeaders.find((cookie) => cookie.includes("substack.sid"))
 
   if (!substackSid) return undefined
 
-  return substackSid.split(';')[0].split('=')[1]
+  return substackSid.split(";")[0].split("=")[1]
 }
 
 export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
   console.log(`email OTP initiated | Using email ${email}`)
   try {
     const { instance: api, testId } = await createApi()
-    const body =  {
+    const body = {
       email: email,
-      redirect: '/home',
+      redirect: "/home",
       can_create_user: true,
     }
     const cookieHeader = buildCookieHeader(testId)
-    const response = await api.post('/email-login', body, {
+    const response = await api.post("/email-login", body, {
       headers: cookieHeader ? { Cookie: cookieHeader } : {},
     })
     if (response.data) {
@@ -84,13 +82,17 @@ export const verifyEmailOtp = async (code: string, email: string, token: string 
   try {
     const { instance: api, testId } = await createApi()
     const cookieHeader = buildCookieHeader(testId, token ? `substack.sid=${token}` : undefined)
-    const response = await api.post("/email-otp-login/complete", {
-      code: code,
-      email: email,
-      redirect: "https://substack.com/home",
-    }, {
-      headers: cookieHeader ? { Cookie: cookieHeader } : {},
-    })
+    const response = await api.post(
+      "/email-otp-login/complete",
+      {
+        code: code,
+        email: email,
+        redirect: "https://substack.com/home",
+      },
+      {
+        headers: cookieHeader ? { Cookie: cookieHeader } : {},
+      }
+    )
 
     console.log("OTP verification response status:", response.status)
     console.log("OTP verification response data:", JSON.stringify(response.data, null, 2))
@@ -118,13 +120,17 @@ export const verifyMfa = async (
   try {
     const { instance: api, testId } = await createApi()
     const cookieHeader = buildCookieHeader(testId, token ? `substack.sid=${token}` : undefined)
-    const response = await api.post("/mfa-login", {
-      code: code,
-      token: "",
-      redirect: "",
-    }, {
-      headers: cookieHeader ? { Cookie: cookieHeader } : {},
-    })
+    const response = await api.post(
+      "/mfa-login",
+      {
+        code: code,
+        token: "",
+        redirect: "",
+      },
+      {
+        headers: cookieHeader ? { Cookie: cookieHeader } : {},
+      }
+    )
 
     console.log("MFA verification response status:", response.status)
     console.log("MFA verification response data:", JSON.stringify(response.data, null, 2))
@@ -140,14 +146,14 @@ export const verifyMfa = async (
 
     return {
       success: true,
-      token: newToken || token // Return new token or keep existing
+      token: newToken || token, // Return new token or keep existing
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("MFA verification failed:", error.response?.status, error.response?.data)
       return {
         success: false,
-        error: error.response?.data?.message || "MFA verification failed"
+        error: error.response?.data?.message || "MFA verification failed",
       }
     }
     return { success: false, error: "An unexpected error occurred" }

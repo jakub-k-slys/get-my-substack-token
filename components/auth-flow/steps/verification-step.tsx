@@ -41,8 +41,11 @@ export const VerificationStep = () => {
       </div>
 
       <p className="text-sm text-muted-foreground text-center mb-6">
-        We've sent an email to <span data-testid="email-display" className="text-card-foreground">{state.email}</span>. Click
-        the magic link or enter the code below:
+        We&apos;ve sent an email to{" "}
+        <span data-testid="email-display" className="text-card-foreground">
+          {state.email}
+        </span>
+        . Click the magic link or enter the code below:
       </p>
 
       {state.error && (
@@ -68,11 +71,8 @@ export const VerificationStep = () => {
       </div>
 
       <div className="text-center">
-        <button
-          type="button"
-          className="text-sm text-muted-foreground hover:text-card-foreground"
-        >
-          Didn't get the email? <span className="text-primary">Try again</span>
+        <button type="button" className="text-sm text-muted-foreground hover:text-card-foreground">
+          Didn&apos;t get the email? <span className="text-primary">Try again</span>
         </button>
       </div>
 

@@ -61,7 +61,7 @@ export const TokenDisplayStep = () => {
 
       <div className="mt-6 p-4 bg-accent/30 rounded-lg">
         <p className="text-xs text-muted-foreground text-center">
-          Store this token securely. You won't be able to see it again.
+          Store this token securely. You won&apos;t be able to see it again.
         </p>
       </div>
 

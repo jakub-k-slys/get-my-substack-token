@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { renderHook, act, waitFor } from "@testing-library/react"
+import { renderHook, act } from "@testing-library/react"
 import { useAuthFlow } from "./use-auth-flow"
 
 // Mock the server actions
@@ -182,11 +182,7 @@ describe("useAuthFlow", () => {
         await result.current.submitOtp(["1", "2", "3", "4", "5", "6"])
       })
 
-      expect(mockVerifyEmailOtp).toHaveBeenCalledWith(
-        "123456",
-        "test@example.com",
-        "initial-token"
-      )
+      expect(mockVerifyEmailOtp).toHaveBeenCalledWith("123456", "test@example.com", "initial-token")
     })
 
     it("should set error state on OTP verification failure", async () => {
@@ -332,9 +328,7 @@ describe("useAuthFlow", () => {
         result.current.skipMfa()
       })
 
-      const skipHistory = result.current.state.history.find(
-        (h) => h.action === "MFA_SKIP"
-      )
+      const skipHistory = result.current.state.history.find((h) => h.action === "MFA_SKIP")
       expect(skipHistory).toBeDefined()
       expect(skipHistory?.step).toBe("token")
     })

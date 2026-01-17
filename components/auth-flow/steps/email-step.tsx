@@ -34,7 +34,9 @@ export const EmailStep = () => {
           aria-invalid={!!form.formState.errors.email}
         />
         {form.formState.errors.email && (
-          <p data-testid="email-error" className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+          <p data-testid="email-error" className="text-sm text-destructive">
+            {form.formState.errors.email.message}
+          </p>
         )}
       </div>
 

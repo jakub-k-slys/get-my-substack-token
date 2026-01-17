@@ -28,12 +28,14 @@ export const test = base.extend<TestFixtures>({
 
   // Set test ID cookie on the page context for state isolation
   context: async ({ context, testId }, use) => {
-    await context.addCookies([{
-      name: "x-test-id",
-      value: testId,
-      domain: "localhost",
-      path: "/",
-    }])
+    await context.addCookies([
+      {
+        name: "x-test-id",
+        value: testId,
+        domain: "localhost",
+        path: "/",
+      },
+    ])
     await use(context)
   },
 

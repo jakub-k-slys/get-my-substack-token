@@ -16,10 +16,7 @@ export const verificationCodeSchema = z.object({
   code: z
     .array(z.string().regex(/^\d$/, "Must be a digit"))
     .length(6, "Verification code must be 6 digits")
-    .refine(
-      (arr) => arr.every((digit) => digit.length === 1),
-      "Each digit must be a single character"
-    ),
+    .refine((arr) => arr.every((digit) => digit.length === 1), "Each digit must be a single character"),
 })
 
 export type VerificationCodeFormData = z.infer<typeof verificationCodeSchema>

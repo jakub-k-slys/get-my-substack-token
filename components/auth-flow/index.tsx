@@ -25,7 +25,9 @@ const AuthFlowContent = () => {
           <div data-testid="header-icon" className="bg-primary/10 p-3 rounded-lg mb-4">
             <Bookmark className="w-8 h-8 text-primary" />
           </div>
-          <h1 data-testid="step-title" className="text-2xl font-semibold text-center">{currentStepTitle}</h1>
+          <h1 data-testid="step-title" className="text-2xl font-semibold text-center">
+            {currentStepTitle}
+          </h1>
         </div>
 
         {/* Render current step */}

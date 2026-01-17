@@ -44,7 +44,9 @@ export const TwoFactorStep = () => {
           aria-invalid={!!form.formState.errors.code}
         />
         {form.formState.errors.code && (
-          <p data-testid="mfa-error" className="text-sm text-destructive">{form.formState.errors.code.message}</p>
+          <p data-testid="mfa-error" className="text-sm text-destructive">
+            {form.formState.errors.code.message}
+          </p>
         )}
       </div>
 
