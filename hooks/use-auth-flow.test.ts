@@ -135,9 +135,11 @@ describe("useAuthFlow", () => {
         await result.current.submitEmail("test@example.com")
       })
 
-      expect(result.current.state.history).toHaveLength(1)
-      expect(result.current.state.history[0].step).toBe("verification")
-      expect(result.current.state.history[0].action).toBe("EMAIL_SUBMIT_SUCCESS")
+      // History includes both EMAIL_SUBMIT_START and EMAIL_SUBMIT_SUCCESS
+      expect(result.current.state.history).toHaveLength(2)
+      expect(result.current.state.history[0].action).toBe("EMAIL_SUBMIT_START")
+      expect(result.current.state.history[1].step).toBe("verification")
+      expect(result.current.state.history[1].action).toBe("EMAIL_SUBMIT_SUCCESS")
     })
   })
 
@@ -377,7 +379,11 @@ describe("useAuthFlow", () => {
       expect(result.current.state.currentStep).toBe("email")
       expect(result.current.state.email).toBe("")
       expect(result.current.state.token).toBe("")
-      expect(result.current.state.history).toEqual([])
+      // Reset keeps a record of the reset action in history
+      expect(result.current.state.history).toHaveLength(1)
+      expect(result.current.state.history[0].action).toBe("RESET")
+      expect(result.current.state.history[0].previousStep).toBe("verification")
+      expect(result.current.state.history[0].step).toBe("email")
       expect(result.current.state.status).toBe("idle")
     })
   })

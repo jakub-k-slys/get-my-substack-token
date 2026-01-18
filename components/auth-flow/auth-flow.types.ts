@@ -20,11 +20,16 @@ export interface AuthFlowContext {
   error: string | null
 
   // History for debugging/analytics
-  history: Array<{
-    step: AuthFlowState
-    timestamp: number
-    action: string
-  }>
+  history: StateChangeHistoryEntry[]
+}
+
+// History entry for state changes
+export interface StateChangeHistoryEntry {
+  step: AuthFlowState
+  previousStep: AuthFlowState | null
+  timestamp: number
+  action: string
+  params: Record<string, unknown>
 }
 
 // Action types

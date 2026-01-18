@@ -4,9 +4,55 @@ import type {
   AuthFlowAction,
   AuthFlowState,
   StateTransition,
+  StateChangeHistoryEntry,
 } from "@/components/auth-flow/auth-flow.types"
 import { emailLogin, verifyEmailOtp, verifyMfa } from "@/app/actions/substack-auth"
-import { logger } from "@/lib/logger"
+import { logger, logStateChange, obfuscateParams } from "@/lib/logger"
+
+// Extract parameters from action for logging
+const extractActionParams = (action: AuthFlowAction): Record<string, unknown> => {
+  if ("payload" in action) {
+    return action.payload as Record<string, unknown>
+  }
+  return {}
+}
+
+// Create a history entry for state changes
+const createHistoryEntry = (
+  previousStep: AuthFlowState | null,
+  newStep: AuthFlowState,
+  action: AuthFlowAction
+): StateChangeHistoryEntry => ({
+  step: newStep,
+  previousStep,
+  timestamp: Date.now(),
+  action: action.type,
+  params: obfuscateParams(extractActionParams(action)),
+})
+
+// Log state change with history
+const logStateChangeWithHistory = (
+  previousState: AuthFlowContext,
+  newState: AuthFlowContext,
+  action: AuthFlowAction
+): void => {
+  const entry = {
+    action: action.type,
+    previousStep: previousState.currentStep,
+    currentStep: newState.currentStep,
+    params: extractActionParams(action),
+  }
+
+  // Convert history entries to log format
+  const historyLog = newState.history.map((h) => ({
+    action: h.action,
+    previousStep: h.previousStep,
+    currentStep: h.step,
+    params: h.params,
+  }))
+
+  logStateChange({ entry, history: historyLog })
+}
 
 // Initial state
 const initialState: AuthFlowContext = {
@@ -75,8 +121,8 @@ const validateTransition = (currentStep: AuthFlowState, action: AuthFlowAction, 
   return true
 }
 
-// Reducer function
-const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFlowContext => {
+// Core reducer function (without logging)
+const authFlowReducerCore = (state: AuthFlowContext, action: AuthFlowAction): AuthFlowContext => {
   // Validate transition
   if (!validateTransition(state.currentStep, action, state)) {
     logger.warn("Invalid state transition", { from: state.currentStep, action: action.type })
@@ -90,6 +136,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         email: action.payload.email,
         status: "loading",
         error: null,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "EMAIL_SUBMIT_SUCCESS":
@@ -98,14 +145,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         token: action.payload.token,
         currentStep: "verification",
         status: "success",
-        history: [
-          ...state.history,
-          {
-            step: "verification",
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ],
+        history: [...state.history, createHistoryEntry(state.currentStep, "verification", action)],
       }
 
     case "EMAIL_SUBMIT_ERROR":
@@ -113,12 +153,14 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         ...state,
         status: "error",
         error: action.payload.error,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "OTP_UPDATE":
       return {
         ...state,
         verificationCode: action.payload.code,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "OTP_SUBMIT_START":
@@ -126,6 +168,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         ...state,
         status: "loading",
         error: null,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "OTP_VERIFY_SUCCESS_MFA_REQUIRED":
@@ -135,14 +178,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         currentStep: "twoFactor",
         status: "success",
         mfaRequired: true,
-        history: [
-          ...state.history,
-          {
-            step: "twoFactor",
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ],
+        history: [...state.history, createHistoryEntry(state.currentStep, "twoFactor", action)],
       }
 
     case "OTP_VERIFY_SUCCESS_NO_MFA":
@@ -152,14 +188,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         currentStep: "token",
         status: "success",
         mfaRequired: false,
-        history: [
-          ...state.history,
-          {
-            step: "token",
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ],
+        history: [...state.history, createHistoryEntry(state.currentStep, "token", action)],
       }
 
     case "OTP_VERIFY_ERROR":
@@ -167,12 +196,14 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         ...state,
         status: "error",
         error: action.payload.error,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "MFA_UPDATE":
       return {
         ...state,
         twoFactorCode: action.payload.code,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "MFA_SUBMIT_START":
@@ -180,6 +211,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         ...state,
         status: "loading",
         error: null,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "MFA_VERIFY_SUCCESS":
@@ -188,14 +220,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         token: action.payload.token,
         currentStep: "token",
         status: "success",
-        history: [
-          ...state.history,
-          {
-            step: "token",
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ],
+        history: [...state.history, createHistoryEntry(state.currentStep, "token", action)],
       }
 
     case "MFA_VERIFY_ERROR":
@@ -203,6 +228,7 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         ...state,
         status: "error",
         error: action.payload.error,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     case "MFA_SKIP":
@@ -211,37 +237,50 @@ const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFl
         currentStep: "token",
         status: "success",
         twoFactorCode: "",
-        history: [
-          ...state.history,
-          {
-            step: "token",
-            timestamp: Date.now(),
-            action: action.type,
-          },
-        ],
+        history: [...state.history, createHistoryEntry(state.currentStep, "token", action)],
       }
 
     case "TOKEN_COPY":
-      // Non-state-changing action, just for tracking
-      return state
+      return {
+        ...state,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
+      }
 
     case "TOKEN_SHOW_TOGGLE":
-      // Non-state-changing action, handled by local component state
-      return state
+      return {
+        ...state,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
+      }
 
     case "RESET":
-      return initialState
+      return {
+        ...initialState,
+        history: [createHistoryEntry(state.currentStep, "email", action)],
+      }
 
     case "RETRY":
       return {
         ...state,
         status: "idle",
         error: null,
+        history: [...state.history, createHistoryEntry(state.currentStep, state.currentStep, action)],
       }
 
     default:
       return state
   }
+}
+
+// Reducer wrapper that logs state changes
+const authFlowReducer = (state: AuthFlowContext, action: AuthFlowAction): AuthFlowContext => {
+  const newState = authFlowReducerCore(state, action)
+
+  // Log the state change if state actually changed
+  if (newState !== state) {
+    logStateChangeWithHistory(state, newState, action)
+  }
+
+  return newState
 }
 
 // Step title mapping
