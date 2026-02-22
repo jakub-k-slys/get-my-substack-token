@@ -43,7 +43,9 @@ const extractTokenFromHeaders = (headers: { "set-cookie"?: string[] }): string |
 
   if (!substackSid) return undefined
 
-  return substackSid.split(";")[0].split("=")[1]
+  // Use slice(1).join("=") instead of [1] to preserve "=" characters that
+  // appear inside base64-encoded cookie values.
+  return substackSid.split(";")[0].split("=").slice(1).join("=")
 }
 
 export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
