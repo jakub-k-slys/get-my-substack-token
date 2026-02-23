@@ -25,9 +25,13 @@ const createApi = async () => {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        "User-Agent": "PostmanRuntime/7.51.0",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-US,en;q=0.9",
         Connection: "keep-alive",
+        Origin: "https://substack.com",
+        Referer: "https://substack.com/sign-in",
       },
     }),
     testId,
@@ -43,7 +47,9 @@ const extractTokenFromHeaders = (headers: { "set-cookie"?: string[] }): string |
 
   if (!substackSid) return undefined
 
-  return substackSid.split(";")[0].split("=")[1]
+  // Use slice(1).join("=") instead of [1] to preserve "=" characters that
+  // appear inside base64-encoded cookie values.
+  return substackSid.split(";")[0].split("=").slice(1).join("=")
 }
 
 export const emailLogin = async (email: string): Promise<{ token: string | undefined }> => {
@@ -60,12 +66,11 @@ export const emailLogin = async (email: string): Promise<{ token: string | undef
       headers: cookieHeader ? { Cookie: cookieHeader } : {},
     })
 
-    logger.debug("Email login response", { status: response.status })
-
     const token = extractTokenFromHeaders(response.headers)
-    if (token) {
-      logger.debug("Token obtained after email login", { token: obfuscateToken(token) })
-    }
+    logger.info("Email login response", {
+      status: response.status,
+      hasCookie: token !== undefined,
+    })
 
     return { token }
   } catch (error) {
@@ -100,12 +105,11 @@ export const verifyEmailOtp = async (code: string, email: string, token: string 
       }
     )
 
-    logger.debug("OTP verification response", { status: response.status })
-
     const newToken = extractTokenFromHeaders(response.headers)
-    if (newToken) {
-      logger.debug("Token obtained after OTP verification", { token: obfuscateToken(newToken) })
-    }
+    logger.info("OTP verification response", {
+      status: response.status,
+      hasCookie: newToken !== undefined,
+    })
 
     return { newToken }
   } catch (error) {
@@ -140,7 +144,7 @@ export const verifyMfa = async (
       }
     )
 
-    logger.debug("MFA verification response", { status: response.status })
+    logger.info("MFA verification response", { status: response.status })
 
     // Check for API errors
     if (response.data.error || response.data.errors) {

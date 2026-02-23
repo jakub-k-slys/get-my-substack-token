@@ -323,10 +323,10 @@ export const useAuthFlow = (): UseAuthFlowReturn => {
     dispatch({ type: "EMAIL_SUBMIT_START", payload: { email } })
     try {
       const result = await emailLogin(email)
-      if (!result.token) {
-        throw new Error("No token received from email login")
-      }
-      dispatch({ type: "EMAIL_SUBMIT_SUCCESS", payload: { token: result.token } })
+      // token may be undefined when Substack does not set a session cookie
+      // (e.g. requests from cloud/datacenter IPs). The OTP email is still
+      // sent, so we proceed to the verification step regardless.
+      dispatch({ type: "EMAIL_SUBMIT_SUCCESS", payload: { token: result.token ?? "" } })
     } catch (error) {
       dispatch({
         type: "EMAIL_SUBMIT_ERROR",
