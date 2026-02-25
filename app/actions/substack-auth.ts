@@ -42,6 +42,7 @@ const createApi = async () => {
 const extractTokenFromHeaders = (headers: { "set-cookie"?: string[] }): string | undefined => {
   const setCookieHeaders = headers["set-cookie"]
   if (!setCookieHeaders) return undefined
+  logger.info("set-cookie:", { setCookieHeaders })
 
   const substackSid = setCookieHeaders.find((cookie) => cookie.includes("substack.sid"))
 
