@@ -1,0 +1,30 @@
+These instructions apply to the entire repository unless a deeper `AGENTS.md` overrides them.
+- Stack: Next.js App Router, TypeScript, Tailwind CSS v4, shadcn/ui, Vitest, Playwright.
+- Package manager: prefer `pnpm`.
+- Runtime: Node.js 20+.
+- Main purpose: guide a user through Substack authentication and extract the `substack.sid` token safely.
+- Keep changes narrow and consistent with the existing codebase.
+- Preserve the current App Router structure unless a task explicitly requires restructuring.
+- Prefer server-side handling for Substack auth flows and avoid moving sensitive logic into client components.
+- Do not log, hardcode, snapshot, or commit real tokens, verification codes, cookies, or other secrets.
+- Treat all authentication artifacts as sensitive user data.
+- Follow the existing TypeScript and React patterns already present in the repo.
+- Prefer small focused functions over large abstractions.
+- Reuse existing utilities and UI components before adding new ones.
+- Keep comments minimal and only when a non-obvious decision needs context.
+- Preserve responsiveness on desktop and mobile.
+- Match the existing visual language unless the user asks for a redesign.
+- Keep accessibility intact: labels, button states, keyboard flow, and error messaging matter here.
+- For code changes, run the smallest relevant checks first.
+- Prefer targeted validation before broader suites:
+  - `pnpm test` or narrower Vitest targets for logic changes.
+  - `pnpm lint` for lint-sensitive edits.
+  - `pnpm test:e2e` only when the task affects browser flows and the environment supports it.
+- If dependencies are missing, install them with `pnpm install` before finalizing.
+- `app/actions/`: server actions for authentication flow.
+- `components/`: UI flow and form components.
+- `lib/`: shared utilities.
+- `README.md`: update when setup, scripts, or behavior changes.
+- Never commit generated output, credentials, or local environment files.
+- Respect the existing `.gitignore`; update it only when new generated artifacts are introduced.
+- Flag security-sensitive tradeoffs explicitly when a task changes authentication behavior.
