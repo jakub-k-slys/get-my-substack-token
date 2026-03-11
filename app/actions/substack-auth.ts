@@ -108,7 +108,7 @@ export const checkLoggedIn = async (
       data: response.data,
     })
 
-    return { loggedIn: !!response.data }
+    return { loggedIn: response.data.loggedIn === true }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       logger.error("Login check failed", {
