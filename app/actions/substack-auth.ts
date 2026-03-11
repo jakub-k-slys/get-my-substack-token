@@ -23,15 +23,18 @@ const createApi = async () => {
     instance: axios.create({
       baseURL: process.env.SUBSTACK_API_URL || "https://substack.com/api/v1/",
       headers: {
-        Accept: "application/json",
         "Content-Type": "application/json",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept-Encoding": "gzip, deflate, br",
+        Accept: "*/*",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
         "Accept-Language": "en-US,en;q=0.9",
-        Connection: "keep-alive",
+        "Cache-Control": "max-age=0",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
         Origin: "https://substack.com",
         Referer: "https://substack.com/sign-in",
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Safari/605.1.15",
       },
     }),
     testId,
@@ -58,9 +61,12 @@ export const emailLogin = async (email: string): Promise<{ token: string | undef
   try {
     const { instance: api, testId } = await createApi()
     const body = {
+      redirect: "/",
+      for_pub: "",
+      isOAuth: "false",
       email: email,
-      redirect: "/home",
       can_create_user: true,
+      captcha_response: null,
     }
     const cookieHeader = buildCookieHeader(testId)
     const response = await api.post("/email-login", body, {
