@@ -92,6 +92,34 @@ export const emailLogin = async (email: string): Promise<{ token: string | undef
   }
 }
 
+export const checkLoggedIn = async (
+  token: string
+): Promise<{ loggedIn: boolean }> => {
+  logger.info("Checking login status", { token: obfuscateToken(token) })
+  try {
+    const { instance: api, testId } = await createApi()
+    const cookieHeader = buildCookieHeader(testId, `substack.sid=${token}`)
+    const response = await api.get("/am_i_logged_in", {
+      headers: cookieHeader ? { Cookie: cookieHeader } : {},
+    })
+
+    logger.info("Login check response", {
+      status: response.status,
+      data: response.data,
+    })
+
+    return { loggedIn: !!response.data }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      logger.error("Login check failed", {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+      })
+    }
+    return { loggedIn: false }
+  }
+}
+
 export const verifyEmailOtp = async (code: string, email: string, token: string | undefined) => {
   logger.info("Email OTP verification step", {
     email: obfuscateEmail(email),
