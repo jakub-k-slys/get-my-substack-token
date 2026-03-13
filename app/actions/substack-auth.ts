@@ -4,6 +4,21 @@ import axios from "axios"
 import { cookies } from "next/headers"
 import { logger, obfuscateEmail, obfuscateToken } from "@/lib/logger"
 
+const browserLikeHeaders = {
+  Accept: "*/*",
+  "Accept-Encoding": "gzip, deflate, br, zstd",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "max-age=0",
+  Origin: "https://substack.com",
+  Priority: "u=3, i",
+  Referer: "https://substack.com/sign-in?redirect=%2F",
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "same-origin",
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Safari/605.1.15",
+}
+
 const getTestIdCookie = async (): Promise<string | undefined> => {
   const cookieStore = await cookies()
   return cookieStore.get("x-test-id")?.value
@@ -22,17 +37,7 @@ const createApi = async () => {
   return {
     instance: axios.create({
       baseURL: process.env.SUBSTACK_API_URL || "https://substack.com/api/v1/",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.9",
-        Connection: "keep-alive",
-        Origin: "https://substack.com",
-        Referer: "https://substack.com/sign-in",
-      },
+      headers: browserLikeHeaders,
     }),
     testId,
   }
