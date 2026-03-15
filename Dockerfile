@@ -36,4 +36,4 @@ COPY --from=build /app/public ./public
 COPY --from=build /app/.next ./.next
 USER nextjs
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm start -- --hostname ${HOSTNAME:-0.0.0.0} --port ${PORT:-3000}"]
+CMD ["sh", "-c", "pnpm start --hostname ${HOSTNAME:-0.0.0.0} --port ${PORT:-3000}"]
