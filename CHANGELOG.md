@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.0...1.0.1) (2026-03-15)
+
+
+### Bug Fixes
+
+* change GitHub token to GET_SUBSTACK_TOKEN_WRITE ([56005a2](https://github.com/jakub-k-slys/get-my-substack-token/commit/56005a256033398712f9490f12cc3d394e279eb2))
+* refactor axios headers to use browser-like headers ([33d26d9](https://github.com/jakub-k-slys/get-my-substack-token/commit/33d26d963cf1ff12bd6cb9199c7d0a0a952fc5fd))
+* syntax error in axios instance creation ([9bb3d15](https://github.com/jakub-k-slys/get-my-substack-token/commit/9bb3d15d09668698ae253d0bb1643750553c8d72))
+
 # 1.0.0 (2026-03-15)
 
 
