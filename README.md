@@ -125,7 +125,7 @@ curl -H "Cookie: substack.sid=YOUR_TOKEN_HERE" \
 ```bash
 pnpm dev      # Start development server
 pnpm build    # Build for production
-pnpm start    # Start production server
+pnpm start    # Start production server after next build
 pnpm lint     # Run ESLint
 pnpm test:unit # Run Vitest unit tests
 pnpm playwright:install # Install Playwright browsers
@@ -146,6 +146,18 @@ The repository currently includes GitHub Actions workflows for CI, pull-request 
 - Pull requests are validated against Conventional Commit title rules
 - Releases are created through a manual workflow with Semantic Release
 - Docker images are published to GHCR when a release is published or when the Docker workflow is triggered manually
+- The Docker image runs `next build` via `pnpm build` and starts the app with `pnpm start` (`next start`) on port `3000`
+
+### Docker
+
+Build and run the production image locally:
+
+```bash
+docker build -t get-my-substack-token .
+docker run --rm -p 3000:3000 get-my-substack-token
+```
+
+`next start` requires a completed `next build` first. In Docker, that happens during the image build via `pnpm build`.
 
 You can also deploy to:
 
