@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.3...1.0.4) (2026-03-15)
+
+
+### Bug Fixes
+
+* align pnpm start ([6c445e5](https://github.com/jakub-k-slys/get-my-substack-token/commit/6c445e5ed5aef3d5c6796133782424524faa8115))
+
 ## [1.0.3](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.2...1.0.3) (2026-03-15)
 
 
