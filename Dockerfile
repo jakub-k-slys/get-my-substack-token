@@ -20,7 +20,7 @@ RUN pnpm build
 FROM base AS prod-deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM base AS run
 WORKDIR /app
