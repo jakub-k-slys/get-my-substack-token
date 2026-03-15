@@ -127,6 +127,9 @@ pnpm dev      # Start development server
 pnpm build    # Build for production
 pnpm start    # Start production server
 pnpm lint     # Run ESLint
+pnpm test:unit # Run Vitest unit tests
+pnpm playwright:install # Install Playwright browsers
+pnpm test:e2e # Run Playwright end-to-end tests
 ```
 
 ### Environment
@@ -137,11 +140,12 @@ pnpm lint     # Run ESLint
 
 ## Deployment
 
-The project includes a GitHub Actions workflow for automated deployment to GitHub Pages:
+The repository currently includes GitHub Actions workflows for CI, pull-request title linting, manual releases, and Docker image publishing.
 
-- Triggers on push to `main` branch
-- Builds static Next.js site
-- Deploys to GitHub Pages
+- CI runs build, lint, unit-test, and E2E checks
+- Pull requests are validated against Conventional Commit title rules
+- Releases are created through a manual workflow with Semantic Release
+- Docker images are published to GHCR when a release is published or when the Docker workflow is triggered manually
 
 You can also deploy to:
 
