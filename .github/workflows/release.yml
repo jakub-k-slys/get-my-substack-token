@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run semantic release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v4.1.1
+        uses: cycjimmy/semantic-release-action@b1b432f13acb7768e0c8efdec416d363a57546f2
         with:
           tag_format: ${version}
           extra_plugins: |

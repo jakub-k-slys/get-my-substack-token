@@ -5,11 +5,6 @@ Given("I am on the home page", async ({ page }) => {
 })
 
 Given("clipboard permissions are granted", async ({ context, page, browserName }) => {
-  if (browserName !== "firefox") {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"])
-    return
-  }
-
   const installClipboardStub = () => {
     let clipboardText = ""
 
@@ -24,8 +19,22 @@ Given("clipboard permissions are granted", async ({ context, page, browserName }
     })
   }
 
-  await context.addInitScript(installClipboardStub)
-  await page.evaluate(installClipboardStub)
+  if (browserName === "firefox") {
+    await context.addInitScript(installClipboardStub)
+    await page.evaluate(installClipboardStub)
+    return
+  }
+
+  try {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"])
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes("Unknown permission")) {
+      throw error
+    }
+
+    await context.addInitScript(installClipboardStub)
+    await page.evaluate(installClipboardStub)
+  }
 })
 
 Given("I am on the {string} page", async ({ page }, path: string) => {
