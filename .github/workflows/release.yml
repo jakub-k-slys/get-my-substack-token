@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.ref_name }}
-          token: ${{ secrets.GH_ACCESS_TOKEN != '' && secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GET_SUBSTACK_TOKEN_WRITE }}
       - name: Setup pnpm
         uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061
         with:
@@ -41,7 +41,7 @@ jobs:
             @semantic-release/changelog@6.0.3
             @semantic-release/git@10.0.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN != '' && secrets.GH_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GET_SUBSTACK_TOKEN_WRITE }}
       - name: Export version
         if: steps.semantic.outputs.new_release_published == 'true'
         run: echo "VERSION=${{ steps.semantic.outputs.new_release_version }}" >> "$GITHUB_ENV"
