@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.1...1.0.2) (2026-03-15)
+
+
+### Bug Fixes
+
+* align header ([9ac5168](https://github.com/jakub-k-slys/get-my-substack-token/commit/9ac51680e9a92fb283b2c76df9c5469f5f15d778))
+
 ## [1.0.1](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.0...1.0.1) (2026-03-15)
 
 
