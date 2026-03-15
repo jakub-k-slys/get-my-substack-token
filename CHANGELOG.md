@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.2...1.0.3) (2026-03-15)
+
+
+### Bug Fixes
+
+* use next start in dockerfile ([966bfe7](https://github.com/jakub-k-slys/get-my-substack-token/commit/966bfe76b349e2187c5fd6d8125114cd61bb11b0))
+
 ## [1.0.2](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.1...1.0.2) (2026-03-15)
 
 
