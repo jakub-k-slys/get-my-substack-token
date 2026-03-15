@@ -12,9 +12,6 @@ const browserLikeHeaders = {
   Origin: "https://substack.com",
   Priority: "u=3, i",
   Referer: "https://substack.com/sign-in?redirect=%2F",
-  "Sec-Fetch-Dest": "empty",
-  "Sec-Fetch-Mode": "cors",
-  "Sec-Fetch-Site": "same-origin",
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Safari/605.1.15",
 }
