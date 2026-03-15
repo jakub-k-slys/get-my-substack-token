@@ -38,7 +38,6 @@ const createApi = async () => {
     instance: axios.create({
       baseURL: process.env.SUBSTACK_API_URL || "https://substack.com/api/v1/",
       headers: browserLikeHeaders,
-      },
     }),
     testId,
   }
