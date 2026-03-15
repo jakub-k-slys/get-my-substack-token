@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "playwright:install": "playwright install",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest",

@@ -127,6 +127,9 @@ pnpm dev      # Start development server
 pnpm build    # Build for production
 pnpm start    # Start production server
 pnpm lint     # Run ESLint
+pnpm test:unit # Run Vitest unit tests
+pnpm playwright:install # Install Playwright browsers
+pnpm test:e2e # Run Playwright end-to-end tests
 ```
 
 ### Environment
@@ -137,11 +140,11 @@ pnpm lint     # Run ESLint
 
 ## Deployment
 
-The project includes a GitHub Actions workflow for automated deployment to GitHub Pages:
+The repository currently includes a GitHub Actions CI workflow that runs build, lint, unit-test, and E2E checks on `push`, `pull_request`, and manual dispatch.
 
-- Triggers on push to `main` branch
-- Builds static Next.js site
-- Deploys to GitHub Pages
+- CI does not deploy the app automatically
+- `main` pushes and pull requests to `main` trigger the checks
+- Manual runs are available through `workflow_dispatch`
 
 You can also deploy to:
 
