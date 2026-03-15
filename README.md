@@ -140,11 +140,12 @@ pnpm test:e2e # Run Playwright end-to-end tests
 
 ## Deployment
 
-The repository currently includes a GitHub Actions CI workflow that runs build, lint, unit-test, and E2E checks on `push`, `pull_request`, and manual dispatch.
+The repository currently includes GitHub Actions workflows for CI, pull-request title linting, manual releases, and Docker image publishing.
 
-- CI does not deploy the app automatically
-- `main` pushes and pull requests to `main` trigger the checks
-- Manual runs are available through `workflow_dispatch`
+- CI runs build, lint, unit-test, and E2E checks
+- Pull requests are validated against Conventional Commit title rules
+- Releases are created through a manual workflow with Semantic Release
+- Docker images are published to GHCR when a release is published or when the Docker workflow is triggered manually
 
 You can also deploy to:
 

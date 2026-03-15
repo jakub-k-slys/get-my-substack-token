@@ -1,0 +1,82 @@
+name: Build and publish Docker image
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to build. Leave empty to use the latest release.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publishing:
+    name: Build Docker image and push it to the registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          latest_tag="$(gh api "repos/$REPOSITORY/releases/latest" --jq '.tag_name')"
+
+          if [ "$EVENT_NAME" = "release" ]; then
+            selected_tag="$RELEASE_TAG"
+          elif [ -n "$INPUT_TAG" ]; then
+            selected_tag="$INPUT_TAG"
+          else
+            selected_tag="$latest_tag"
+          fi
+
+          echo "tag=$selected_tag" >> "$GITHUB_OUTPUT"
+          if [ "$selected_tag" = "$latest_tag" ]; then
+            echo "is_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check out the repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.7.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.12.0
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5.9.0
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ steps.release.outputs.tag }}
+            type=raw,value=latest,enable=${{ steps.release.outputs.is_latest == 'true' }}
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5.4.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
