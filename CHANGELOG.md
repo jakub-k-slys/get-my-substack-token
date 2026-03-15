@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.4...1.0.5) (2026-03-15)
+
+
+### Bug Fixes
+
+* align pnpm deps ([1d82c3d](https://github.com/jakub-k-slys/get-my-substack-token/commit/1d82c3d061b9e7f6e37432c1e5c01d717a6f81fe))
+
 ## [1.0.4](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.3...1.0.4) (2026-03-15)
 
 
