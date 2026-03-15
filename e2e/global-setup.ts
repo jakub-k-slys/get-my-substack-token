@@ -4,10 +4,6 @@ import express, { Request, Response } from "express"
 
 const MOCK_SERVER_PORT = 3001
 
-declare global {
-  var __MOCK_SERVER__: Server | undefined
-}
-
 // Create mock server with request-scoped state (identified by x-test-id cookie)
 function createMockServer() {
   const app = express()
@@ -145,8 +141,19 @@ async function globalSetup(_config: FullConfig) {
     })
   })
 
-  // Store for teardown
-  globalThis.__MOCK_SERVER__ = mockServer
+  return async () => {
+    await new Promise<void>((resolve, reject) => {
+      mockServer.close((error) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        console.log("Mock Substack server stopped")
+        resolve()
+      })
+    })
+  }
 }
 
 export default globalSetup

@@ -4,8 +4,28 @@ Given("I am on the home page", async ({ page }) => {
   await page.goto("/")
 })
 
-Given("clipboard permissions are granted", async ({ context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"])
+Given("clipboard permissions are granted", async ({ context, page, browserName }) => {
+  if (browserName !== "firefox") {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"])
+    return
+  }
+
+  const installClipboardStub = () => {
+    let clipboardText = ""
+
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          clipboardText = text
+        },
+        readText: async () => clipboardText,
+      },
+    })
+  }
+
+  await context.addInitScript(installClipboardStub)
+  await page.evaluate(installClipboardStub)
 })
 
 Given("I am on the {string} page", async ({ page }, path: string) => {

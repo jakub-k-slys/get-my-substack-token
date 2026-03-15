@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test"
 import { defineBddConfig } from "playwright-bdd"
 
+const E2E_APP_PORT = process.env.CI ? 3002 : 3000
+const E2E_APP_COMMAND = process.env.CI
+  ? `SUBSTACK_API_URL=http://localhost:3001/api/v1/ pnpm exec next dev --port ${E2E_APP_PORT}`
+  : "SUBSTACK_API_URL=http://localhost:3001/api/v1/ pnpm dev"
+
 const testDir = defineBddConfig({
   features: "e2e/features/**/*.feature",
   steps: ["e2e/steps/**/*.ts", "e2e/fixtures.ts"],
@@ -9,18 +14,14 @@ const testDir = defineBddConfig({
 
 export default defineConfig({
   testDir,
-  // Enable parallel execution - tests are isolated via request-scoped state
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  // Number of parallel workers
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 1 : 2,
   reporter: "html",
-  // Global setup/teardown for mock server
   globalSetup: "./e2e/global-setup.ts",
-  globalTeardown: "./e2e/global-teardown.ts",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${E2E_APP_PORT}`,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -39,8 +40,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "SUBSTACK_API_URL=http://localhost:3001/api/v1/ pnpm dev",
-    url: "http://localhost:3000",
+    command: E2E_APP_COMMAND,
+    url: `http://localhost:${E2E_APP_PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

@@ -6,7 +6,11 @@ Given("I am on the sign in page", async ({ page }) => {
 })
 
 When("I enter the email {string}", async ({ page }, email: string) => {
-  await page.getByTestId("email-input").fill(email)
+  const emailInput = page.getByTestId("email-input")
+  await emailInput.click()
+  await emailInput.clear()
+  await emailInput.pressSequentially(email)
+  await expect(emailInput).toHaveValue(email)
 })
 
 When("I click the continue button", async ({ page }) => {
