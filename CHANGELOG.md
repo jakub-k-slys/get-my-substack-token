@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.5...1.0.6) (2026-03-16)
+
+
+### Bug Fixes
+
+* optimize Docker build with Next.js standalone output ([#13](https://github.com/jakub-k-slys/get-my-substack-token/issues/13)) ([6070d74](https://github.com/jakub-k-slys/get-my-substack-token/commit/6070d7484a6cdb96ac23973efc2baf0e45d58a09))
+
 ## [1.0.5](https://github.com/jakub-k-slys/get-my-substack-token/compare/1.0.4...1.0.5) (2026-03-15)
 
 
