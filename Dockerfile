@@ -23,6 +23,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+# Force IPv4-first DNS resolution — Docker containers often lack IPv6,
+# causing Node 20's default "verbatim" order to hang on AAAA lookups.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 COPY --from=build /app/public ./public
